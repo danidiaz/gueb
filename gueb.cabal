@@ -1,0 +1,38 @@
+name: gueb
+version: 0.1.0.0
+cabal-version: >=1.10
+build-type: Simple
+license: BSD3
+license-file: LICENSE
+copyright: 2016 Daniel Diaz
+author: Daniel Diaz
+maintainer: diaz_carrete@yahoo.com
+bug-reports: https://github.com/danidiaz/gueb/issues
+category: Network
+
+extra-source-files:
+    README.md
+
+source-repository head
+    type: git
+    location: git@github.com:danidiaz/gueb.git
+
+ -- http://stackoverflow.com/questions/12305970/how-to-make-a-haskell-cabal-project-with-libraryexecutables-that-still-run-with
+
+executable gueb
+    main-is: Main.hs
+    hs-source-dirs: exe
+    default-language: Haskell2010
+    ghc-options: -Wall -O2 -threaded 
+    build-depends:         
+        base >= 4.7 && < 5
+
+library
+    hs-source-dirs: lib
+    default-language: Haskell2010
+    ghc-options: -Wall -O2 -threaded 
+    exposed-modules:
+        Gueb
+    build-depends:         
+        base >= 4.7 && < 5
+
