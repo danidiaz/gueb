@@ -31,6 +31,7 @@ library
     ghc-options: -Wall -O2 -threaded 
     exposed-modules:
         Gueb
+        Gueb.Main
     build-depends:         
         base >= 4.7 && < 5
       , process-streaming >= 0.9.1.0
