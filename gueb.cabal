@@ -33,10 +33,18 @@ library
     exposed-modules:
         Gueb
         Gueb.Main
-        Gueb.API
+        Gueb.Types
+        Gueb.Types.API
     build-depends:         
         base >= 4.7 && < 5
       , process-streaming >= 0.9.1.0
       , containers >= 0.5.7.0
       , optparse-applicative >= 0.12.1.0
       , aeson >= 0.11.1.1
+      , servant >= 0.5
+      , servant-server >= 0.5
+      , servant-lucid >= 0.5
+      , lucid >= 2.9.5
+      , text >= 1.2
+      , warp >= 3.2
+      , wai >= 3.2

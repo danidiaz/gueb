@@ -2,7 +2,7 @@ module Main (
         main
     ) where
 
+import Gueb.Main (makeMain)
 
 main :: IO ()
-main = do
-   print ""
+main = makeMain
