@@ -11,8 +11,11 @@ module Gueb.Main (
         makeMain
     ) where
 
+import Data.ByteString as Bytes
+import Data.Aeson
+import Control.Exception
 import Control.Applicative
-import qualified Options.Applicative as O
+import Options.Applicative
 
 import Servant
 
@@ -21,9 +24,10 @@ import Network.Wai.Handler.Warp
 
 import Gueb.Types.API
 
-data Plan = Plan
+data Args = Args
     {
         port :: Int
+    ,   planPath :: FilePath
     } deriving (Show,Eq)
 
 -- http://haskell-servant.readthedocs.org/en/tutorial/tutorial/Server.html
@@ -36,6 +40,26 @@ jobsAPI = Proxy
 app1 :: Application
 app1 = serve jobsAPI server1
 
+readJSON :: FromJSON a => FilePath -> IO a
+readJSON path = do
+    bytes <- Bytes.readFile path
+    case eitherDecodeStrict' bytes of 
+        Right v -> pure v
+        Left  err  -> throwIO (userError err)
+
+parserInfo :: ParserInfo Args
+parserInfo = 
+    info (helper <*> parser) infoMod
+  where
+    parser = 
+        Args <$> (argument auto (help "port" <> metavar "PORT"))
+             <*> (strArgument (help "json plan file" <> metavar "DICT"))
+    infoMod = 
+        fullDesc <> header "program description" 
+
 makeMain :: IO ()
-makeMain = run 8000 app1
+makeMain = do
+    args <- execParser parserInfo
+    -- read plan here --  
+    run 8000 app1
 

@@ -48,3 +48,4 @@ library
       , text >= 1.2
       , warp >= 3.2
       , wai >= 3.2
+      , bytestring >= 0.10
