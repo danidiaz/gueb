@@ -22,23 +22,17 @@ import Servant
 import Network.Wai
 import Network.Wai.Handler.Warp
 
+import Gueb (noJobs)
 import Gueb.Types.API
+
+jobsAPI :: Proxy JobsAPI
+jobsAPI = Proxy
 
 data Args = Args
     {
         port :: Int
     ,   planPath :: FilePath
     } deriving (Show,Eq)
-
--- http://haskell-servant.readthedocs.org/en/tutorial/tutorial/Server.html
-server1 :: Server JobsAPI
-server1 = return (Jobs [])
-
-jobsAPI :: Proxy JobsAPI
-jobsAPI = Proxy
-
-app1 :: Application
-app1 = serve jobsAPI server1
 
 readJSON :: FromJSON a => FilePath -> IO a
 readJSON path = do
@@ -52,14 +46,19 @@ parserInfo =
     info (helper <*> parser) infoMod
   where
     parser = 
-        Args <$> (argument auto (help "port" <> metavar "PORT"))
+        Args <$> (option auto (help "port" <> long "port" <> metavar "PORT" <> value 8000))
              <*> (strArgument (help "json plan file" <> metavar "DICT"))
     infoMod = 
         fullDesc <> header "program description" 
 
 makeMain :: IO ()
 makeMain = do
-    args <- execParser parserInfo
-    -- read plan here --  
-    run 8000 app1
+    Args port_ planPath_ <- execParser parserInfo
+    jobs :: Jobs <- readJSON planPath_
+    -- http://haskell-servant.readthedocs.org/en/tutorial/tutorial/Server.html
+    let server1 :: Server JobsAPI
+        server1 = return jobs
+        app1 :: Application
+        app1 = serve jobsAPI server1
+    run port_ app1
 

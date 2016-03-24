@@ -1,0 +1,5 @@
+{
+    "getJobs" : {
+                "sleep" : { "scriptPath" : "samples/sleep.sh" }
+              }
+}
