@@ -64,6 +64,8 @@ makeMain = do
              :<|> (\jobid -> case jobMap ^. at jobid of
                         Nothing  -> throwE err404
                         Just job -> return job)
+             :<|> undefined
+             :<|> undefined
         app1 :: Application
         app1 = serve jobsAPI server1
     run port app1
