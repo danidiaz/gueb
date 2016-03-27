@@ -18,11 +18,16 @@ import Servant.HTML.Lucid
 
 -- http://haskell-servant.readthedocs.org/en/stable/tutorial/ApiType.html
 type JobsAPI = "jobs" :> Get '[JSON,HTML] Jobs
+          :<|> "jobs" :> Capture "jobid" Text :> Get '[JSON,HTML] Job
 
 data Job = Job 
     {
         scriptPath :: FilePath
     } deriving (Show,Generic,FromJSON,ToJSON)
+
+instance ToHtml Job where
+    toHtml _ = return ()
+    toHtmlRaw _ = return ()
 
 newtype Jobs = Jobs { getJobs :: Map Text Job } deriving (Show,Generic,FromJSON,ToJSON)
 

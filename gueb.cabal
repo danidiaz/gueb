@@ -49,3 +49,5 @@ library
       , warp >= 3.2
       , wai >= 3.2
       , bytestring >= 0.10
+      , lens >= 4.13
+      , transformers >= 0.4.3

@@ -6,6 +6,7 @@
 {-# language OverloadedStrings #-}
 {-# language ScopedTypeVariables #-}
 {-# language TypeOperators #-}
+{-# language RecordWildCards #-}
 
 module Gueb.Main (
         makeMain
@@ -13,8 +14,10 @@ module Gueb.Main (
 
 import Data.ByteString as Bytes
 import Data.Aeson
+import Control.Lens
 import Control.Exception
 import Control.Applicative
+import Control.Monad.Trans.Except
 import Options.Applicative
 
 import Servant
@@ -28,18 +31,18 @@ import Gueb.Types.API
 jobsAPI :: Proxy JobsAPI
 jobsAPI = Proxy
 
-data Args = Args
-    {
-        port :: Int
-    ,   planPath :: FilePath
-    } deriving (Show,Eq)
-
 readJSON :: FromJSON a => FilePath -> IO a
 readJSON path = do
     bytes <- Bytes.readFile path
     case eitherDecodeStrict' bytes of 
         Right v -> pure v
         Left  err  -> throwIO (userError err)
+
+data Args = Args
+    {
+        port :: Int
+    ,   planPath :: FilePath
+    } deriving (Show,Eq)
 
 parserInfo :: ParserInfo Args
 parserInfo = 
@@ -53,12 +56,15 @@ parserInfo =
 
 makeMain :: IO ()
 makeMain = do
-    Args port_ planPath_ <- execParser parserInfo
-    jobs :: Jobs <- readJSON planPath_
+    Args {..} <- execParser parserInfo
+    jobs@(Jobs jobMap) :: Jobs <- readJSON planPath
     -- http://haskell-servant.readthedocs.org/en/tutorial/tutorial/Server.html
     let server1 :: Server JobsAPI
         server1 = return jobs
+             :<|> (\jobid -> case jobMap ^. at jobid of
+                        Nothing  -> throwE err404
+                        Just job -> return job)
         app1 :: Application
         app1 = serve jobsAPI server1
-    run port_ app1
+    run port app1
 
