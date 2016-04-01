@@ -26,6 +26,7 @@ import Network.Wai
 import Network.Wai.Handler.Warp
 
 import Gueb (noJobs)
+import Gueb.Types
 import Gueb.Types.API
 
 jobsAPI :: Proxy JobsAPI
@@ -57,13 +58,13 @@ parserInfo =
 makeMain :: IO ()
 makeMain = do
     Args {..} <- execParser parserInfo
-    jobs@(Jobs jobMap) :: Jobs <- readJSON planPath
+    jobs@(Jobs jobMap) <- Jobs . fmap (Executions 0 mempty) <$> readJSON planPath
     -- http://haskell-servant.readthedocs.org/en/tutorial/tutorial/Server.html
     let server1 :: Server JobsAPI
-        server1 = return jobs
+        server1 = return (Page jobs)
              :<|> (\jobid -> case jobMap ^. at jobid of
                         Nothing  -> throwE err404
-                        Just job -> return job)
+                        Just job -> undefined)
              :<|> undefined
              :<|> undefined
         app1 :: Application
