@@ -6,7 +6,8 @@
 {-# language OverloadedStrings #-}
 {-# language ScopedTypeVariables #-}
 {-# language TypeOperators #-}
-{-# language RecordWildCards #-}
+{-# language NamedFieldPuns #-}
+--{-# language RecordWildCards #-}
 
 module Gueb.Main (
         makeMain
@@ -17,7 +18,6 @@ import Data.Aeson
 import Control.Lens
 import Control.Exception
 import Control.Applicative
-import Control.Monad.Trans.Except
 import Options.Applicative
 
 import Servant
@@ -25,7 +25,7 @@ import Servant
 import Network.Wai
 import Network.Wai.Handler.Warp
 
-import Gueb (noJobs)
+import Gueb (noJobs,makeServer)
 import Gueb.Types
 import Gueb.Types.API
 
@@ -39,12 +39,6 @@ readJSON path = do
         Right v -> pure v
         Left  err  -> throwIO (userError err)
 
-data Args = Args
-    {
-        port :: Int
-    ,   planPath :: FilePath
-    } deriving (Show,Eq)
-
 parserInfo :: ParserInfo Args
 parserInfo = 
     info (helper <*> parser) infoMod
@@ -55,21 +49,18 @@ parserInfo =
     infoMod = 
         fullDesc <> header "program description" 
 
+data Args = Args
+    {
+        port :: Int
+    ,   planPath :: FilePath
+    } deriving (Show,Eq)
+
 makeMain :: IO ()
 makeMain = do
-    Args {..} <- execParser parserInfo
-    jobs@(Jobs jobMap) <- Jobs . fmap (Executions 0 mempty) <$> readJSON planPath
+    Args {port,planPath} <- execParser parserInfo
+    plan <- readJSON planPath
     -- http://haskell-servant.readthedocs.org/en/tutorial/tutorial/Server.html
-    let server1 :: Server JobsAPI
-        server1 = return (Page jobs)
-             :<|> undefined
-             :<|> (\jobid -> case jobMap ^. at jobid of
-                        Nothing  -> throwE err404
-                        Just jobex -> return (Page jobex))
-             :<|> (\jobid execid -> case jobMap ^.. at jobid . folded . executions . at execid . folded of
-                        []  -> throwE err404
-                        exe : _ -> return (Page exe))
-        app1 :: Application
-        app1 = serve jobsAPI server1
+    let app1 :: Application
+        app1 = serve jobsAPI (makeServer plan)
     run port app1
 
