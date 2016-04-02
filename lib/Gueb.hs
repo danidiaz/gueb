@@ -30,7 +30,9 @@ makeHandlersFromRef ref =
          (do 
              jobs <- readState 
              pure (Page jobs))
-    :<|> undefined
+    :<|> (\jobid -> do
+             jobs <- readState 
+             undefined)
     :<|> (\jobid -> do
              jobs <- readState 
              case jobs ^. to getJobs . at jobid of
