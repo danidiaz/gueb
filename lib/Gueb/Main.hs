@@ -62,11 +62,13 @@ makeMain = do
     -- http://haskell-servant.readthedocs.org/en/tutorial/tutorial/Server.html
     let server1 :: Server JobsAPI
         server1 = return (Page jobs)
+             :<|> undefined
              :<|> (\jobid -> case jobMap ^. at jobid of
                         Nothing  -> throwE err404
-                        Just job -> undefined)
-             :<|> undefined
-             :<|> undefined
+                        Just jobex -> return (Page jobex))
+             :<|> (\jobid execid -> case jobMap ^.. at jobid . folded . executions . at execid . folded of
+                        []  -> throwE err404
+                        exe : _ -> return (Page exe))
         app1 :: Application
         app1 = serve jobsAPI server1
     run port app1

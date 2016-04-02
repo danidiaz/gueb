@@ -51,3 +51,4 @@ library
       , bytestring >= 0.10
       , lens >= 4.13
       , transformers >= 0.4.3
+      , process-streaming >= 0.9.1.0

@@ -8,6 +8,7 @@ module Gueb.Types.API where
 
 import Data.Text (Text)
 import Data.Map.Strict
+import Control.Lens
 import qualified Data.Map.Strict as Map
 import Data.Aeson
 
@@ -38,9 +39,12 @@ instance ToHtml (Page Jobs) where
 data Executions a = Executions 
     {
         nextExecutionId :: Int
-    ,   executions :: Map Text Execution
+    ,   _executions :: Map Text Execution
     ,   executable :: a
     } deriving (Show,Generic,ToJSON)
+
+executions :: Lens' (Executions a) (Map Text Execution)
+executions = lens _executions (\r v -> r { _executions = v }) 
 
 instance ToHtml a => ToHtml (Executions a) where
     toHtml _ = return ()
