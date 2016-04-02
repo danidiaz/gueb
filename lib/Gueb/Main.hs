@@ -25,7 +25,7 @@ import Servant
 import Network.Wai
 import Network.Wai.Handler.Warp
 
-import Gueb (noJobs,makeServer)
+import Gueb (noJobs,makeHandlers)
 import Gueb.Types
 import Gueb.Types.API
 
@@ -59,8 +59,9 @@ makeMain :: IO ()
 makeMain = do
     Args {port,planPath} <- execParser parserInfo
     plan <- readJSON planPath
+    handlers <- makeHandlers plan
     -- http://haskell-servant.readthedocs.org/en/tutorial/tutorial/Server.html
     let app1 :: Application
-        app1 = serve jobsAPI (makeServer plan)
+        app1 = serve jobsAPI handlers
     run port app1
 

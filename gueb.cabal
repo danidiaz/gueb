@@ -52,3 +52,4 @@ library
       , lens >= 4.13
       , transformers >= 0.4.3
       , process-streaming >= 0.9.1.0
+      , stm >= 2.4.4
