@@ -15,7 +15,7 @@ import Servant
 import Gueb.Types
 import Gueb.Types.API
 
-noJobs :: Jobs
+noJobs :: Jobs ()
 noJobs = Jobs mempty
 
 makeHandlers :: Plan -> IO (Server JobsAPI)
@@ -25,7 +25,7 @@ makeHandlers plan = do
     pure (makeHandlersFromRef tvar)
     
 -- http://haskell-servant.readthedocs.org/en/tutorial/tutorial/Server.html
-makeHandlersFromRef :: TVar Jobs -> Server JobsAPI 
+makeHandlersFromRef :: TVar (Jobs ()) -> Server JobsAPI 
 makeHandlersFromRef ref =   
          (do 
              jobs <- readState 

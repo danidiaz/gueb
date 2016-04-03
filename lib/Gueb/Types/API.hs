@@ -1,6 +1,7 @@
 {-# language FlexibleInstances #-}
 {-# language DataKinds #-}
 {-# language TypeOperators #-}
+{-# language DeriveFunctor #-}
 {-# language DeriveGeneric #-}
 {-# language DeriveAnyClass #-}
 
@@ -18,53 +19,54 @@ import Lucid
 import Servant.API
 import Servant.HTML.Lucid
 
+
 -- http://haskell-servant.readthedocs.org/en/stable/tutorial/ApiType.html
-type JobsAPI = "jobs" :> Get '[JSON,HTML] (Page Jobs)
+type JobsAPI = "jobs" :> Get '[JSON,HTML] (Page (Jobs ())) 
           :<|> "jobs" :> Capture "jobid" Text :> PostCreated '[JSON,HTML] (Headers '[Header "Location" Text] (Page Created))
-          :<|> "jobs" :> Capture "jobid" Text :> Get '[JSON,HTML] (Page (Executions Job))
-          :<|> "jobs" :> Capture "jobid" Text :> "executions" :> Capture "execid" Text :> Get '[JSON,HTML] (Page Execution)
+          :<|> "jobs" :> Capture "jobid" Text :> Get '[JSON,HTML] (Page (Executions Job ()))
+          :<|> "jobs" :> Capture "jobid" Text :> "executions" :> Capture "execid" Text :> Get '[JSON,HTML] (Page (Execution ()))
 
 newtype Page a = Page { getContent :: a } deriving (Show,Generic,ToJSON)
 
-newtype Jobs = Jobs { getJobs :: Map Text (Executions Job) } deriving (Show,Generic,ToJSON)
+newtype Jobs async = Jobs { getJobs :: Map Text (Executions Job async) } deriving (Show,Generic,ToJSON,Functor)
 
-instance ToHtml Jobs where
+instance ToHtml (Jobs ()) where
     toHtml _ = return ()
     toHtmlRaw _ = return ()
 
-instance ToHtml (Page Jobs) where
+instance ToHtml (Page (Jobs ())) where
     toHtml _ = return ()
     toHtmlRaw _ = return ()
 
-data Executions a = Executions 
+data Executions script async = Executions 
     {
         nextExecutionId :: Int
-    ,   _executions :: Map Text Execution
-    ,   executable :: a
-    } deriving (Show,Generic,ToJSON)
+    ,   _executions     :: Map Text (Execution async)
+    ,   executable      :: script 
+    } deriving (Show,Generic,ToJSON,Functor)
 
-executions :: Lens' (Executions a) (Map Text Execution)
+executions :: Lens' (Executions script async) (Map Text (Execution async))
 executions = lens _executions (\r v -> r { _executions = v }) 
 
-instance ToHtml a => ToHtml (Executions a) where
+instance ToHtml a => ToHtml (Executions a ()) where
     toHtml _ = return ()
     toHtmlRaw _ = return ()
 
-instance ToHtml a => ToHtml (Page (Executions a)) where
+instance ToHtml a => ToHtml (Page (Executions a ())) where
     toHtml _ = return ()
     toHtmlRaw _ = return ()
 
-data Execution = Execution
+data Execution a = Execution
     {
         blah :: Text
-    ,   bloh :: Text
-    } deriving (Show,Generic,ToJSON)
+    ,   bloh :: Either Text a
+    } deriving (Show,Generic,ToJSON,Functor)
 
-instance ToHtml Execution where
+instance ToHtml (Execution ()) where
     toHtml _ = return ()
     toHtmlRaw _ = return ()
 
-instance ToHtml (Page Execution) where
+instance ToHtml (Page (Execution ())) where
     toHtml _ = return ()
     toHtmlRaw _ = return ()
 

@@ -53,3 +53,4 @@ library
       , transformers >= 0.4.3
       , process-streaming >= 0.9.1.0
       , stm >= 2.4.4
+      , async >= 2.1.0
