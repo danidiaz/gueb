@@ -7,7 +7,7 @@ import Control.Lens
 import Data.Monoid
 import Data.Functor
 import Control.Concurrent.STM
-import Control.Concurrent.STM.TVar
+import Control.Concurrent.STM.TMVar
 import Control.Concurrent.Async
 import Control.Monad.Trans.Except
 import Control.Monad.IO.Class
@@ -23,11 +23,11 @@ noJobs = Jobs mempty
 makeHandlers :: Plan -> IO (Server JobsAPI)
 makeHandlers plan = do
     let jobs = Jobs (fmap (Executions 0 mempty) plan)
-    tvar <- atomically (newTVar jobs)
+    tvar <- atomically (newTMVar jobs)
     pure (makeHandlersFromRef tvar)
     
 -- http://haskell-servant.readthedocs.org/en/tutorial/tutorial/Server.html
-makeHandlersFromRef :: TVar (Jobs (Async ())) -> Server JobsAPI 
+makeHandlersFromRef :: TMVar (Jobs (Async ())) -> Server JobsAPI 
 makeHandlersFromRef ref =   
          (do 
              jobs <- readState_ 
@@ -46,5 +46,5 @@ makeHandlersFromRef ref =
                  []  -> throwE err404
                  exe : _ -> return (Page exe))
     where
-    readState = liftIO (atomically (readTVar ref))
+    readState = liftIO (atomically (readTMVar ref))
     readState_ = void <$> readState
