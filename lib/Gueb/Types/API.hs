@@ -22,9 +22,12 @@ import Servant.HTML.Lucid
 
 -- http://haskell-servant.readthedocs.org/en/stable/tutorial/ApiType.html
 type JobsAPI = "jobs" :> Get '[JSON,HTML] (Page (Jobs ())) 
-          :<|> "jobs" :> Capture "jobid" Text :> PostCreated '[JSON,HTML] (Headers '[Header "Location" String] (Page Created))
           :<|> "jobs" :> Capture "jobid" Text :> Get '[JSON,HTML] (Page (Executions Job ()))
-          :<|> "jobs" :> Capture "jobid" Text :> "executions" :> Capture "execid" Text :> Get '[JSON,HTML] (Page (Execution ()))
+          :<|> ExecutionEndpoint
+          :<|> "jobs" :> Capture "jobid" Text :> PostCreated '[JSON,HTML] (Headers '[Header "Location" String] (Page Created))
+
+type ExecutionEndpoint = 
+               "jobs" :> Capture "jobid" Text :> "executions" :> Capture "execid" Text :> Get '[JSON,HTML] (Page (Execution ()))
 
 newtype Page a = Page { getContent :: a } deriving (Show,Generic,ToJSON)
 

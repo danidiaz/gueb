@@ -45,39 +45,32 @@ makeHandlers plan = do
 -- http://haskell-servant.readthedocs.org/en/tutorial/tutorial/Server.html
 makeHandlersFromRef :: TMVar (Coiter Text,Jobs (Async ())) -> Server JobsAPI 
 makeHandlersFromRef ref =   
-         (do 
-             root <- readState_ 
-             pure (Page root))
-    :<|> (\jobid -> do
-             pristine@(runCoiter -> (currentId,nextId),root) <- takeState 
-             unless (not (has (jobs . folded . executions . folded . bloh . _Right) root)) (do
-                 putState pristine
-                 throwE err409) -- conflict
-             ex <- case root ^. jobs . at jobid of
-                 Nothing -> do putState pristine
-                               throwE err404 -- not found
-                 Just ex  -> return ex
+         (query id)
+    :<|> (\jobid        -> query (jobs . ix jobid))
+    :<|> (\jobid execid -> query (jobs . ix jobid . executions . ix execid))
+    :<|> (\jobid -> command (\pristine@(runCoiter -> (currentId,nextId),root) -> do
+             unless (not (has (jobs . folded . executions . folded . bloh . _Right) root)) 
+                    (throwE err409) -- conflict, some job already running
+             ex <- maybeE err404 -- not found
+                          (root ^. jobs . at jobid)
              let Executions {executable} = ex
                  Job {scriptPath} = executable
              a <- liftIO (async (execute (piped (proc scriptPath [])) (pure ())))
              let newExecution = Execution {blah="started",_bloh=Right a}
                  ex' = ex & executions . at currentId .~ Just newExecution
                  root' = root & jobs . at jobid .~ Just ex'
-             putState (nextId,root')
-             let linkProxy = Proxy :: (Proxy ("jobs" :> Capture "jobid" Text :> "executions" :> Capture "execid" Text :> Get '[JSON,HTML] (Page (Execution ()))))
-                 linkUri = show (safeLink (Proxy :: Proxy JobsAPI) linkProxy jobid currentId)
-             return (addHeader linkUri (Page (Created linkUri))))
-    :<|> (\jobid -> do
-             root <- readState_ 
-             case root ^. jobs . at jobid of
-                 Nothing -> throwE err404
-                 Just jobex -> return (Page jobex))
-    :<|> (\jobid execid -> do
-             root <- readState_
-             case root ^.. jobs . at jobid . folded . executions . at execid . folded of
-                 []  -> throwE err404
-                 exe : _ -> return (Page exe))
+                 linkUri = show (safeLink (Proxy :: Proxy JobsAPI) (Proxy :: Proxy ExecutionEndpoint) jobid currentId)
+             return ((nextId,root'),addHeader linkUri (Page (Created linkUri)))))
     where
     readState_ = void . extract <$> liftIO (atomically (readTMVar ref))
-    takeState  = liftIO (atomically (takeTMVar ref))
     putState   = \j -> liftIO (atomically (putTMVar ref j))
+    maybeE e = maybe (throwE e) pure 
+    query somelens = do root <- readState_ 
+                        Page <$> maybeE err404
+                                        (root ^? somelens)
+    command  = \f -> do s <- liftIO (atomically (takeTMVar ref))
+                        catchE (do (newState,result) <- f s 
+                                   putState newState
+                                   return result)
+                               (\e -> do putState s
+                                         throwE e)
