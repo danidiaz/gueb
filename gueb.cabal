@@ -56,3 +56,4 @@ library
       , async >= 2.1.0
       , free >= 4.10
       , comonad >= 4
+      , bifunctors >= 4
