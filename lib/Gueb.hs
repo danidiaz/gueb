@@ -1,18 +1,22 @@
-{-# LANGUAGE NamedFieldPuns #-}
+{-# language NamedFieldPuns #-}
 {-# language DataKinds #-}
 {-# language TypeOperators #-}
-{-# LANGUAGE OverloadedStrings #-}
+{-# language OverloadedStrings #-}
+{-# language ViewPatterns #-}
 
 module Gueb (
         noJobs
     ,   makeHandlers
     ) where
 
-import Control.Lens
 import Data.Text
 import Data.Monoid
 import Data.Functor
+import Control.Lens
 import Control.Monad
+import Control.Comonad
+import Control.Comonad.Env
+import Control.Comonad.Trans.Coiter
 import Control.Concurrent.STM
 import Control.Concurrent.STM.TMVar
 import Control.Concurrent.STM.TChan
@@ -33,37 +37,35 @@ noJobs = Jobs mempty
 
 makeHandlers :: Plan -> IO (Server JobsAPI)
 makeHandlers plan = do
-    let jobs = Jobs (fmap (Executions 0 mempty) plan)
-    tvar <- atomically (newTMVar jobs)
+    let jobs     = Jobs (fmap (Executions mempty) plan)
+        idstream = Data.Text.pack . show <$> unfold (succ . runIdentity) (pure 0)
+    tvar <- atomically (newTMVar (idstream,jobs))
     pure (makeHandlersFromRef tvar)
     
 -- http://haskell-servant.readthedocs.org/en/tutorial/tutorial/Server.html
-makeHandlersFromRef :: TMVar (Jobs (Async ())) -> Server JobsAPI 
+makeHandlersFromRef :: TMVar (Coiter Text,Jobs (Async ())) -> Server JobsAPI 
 makeHandlersFromRef ref =   
          (do 
              root <- readState_ 
              pure (Page root))
     :<|> (\jobid -> do
-             root <- takeState 
+             pristine@(runCoiter -> (currentId,nextId),root) <- takeState 
              unless (not (has (jobs . folded . executions . folded . bloh . _Right) root)) (do
-                 putState root
+                 putState pristine
                  throwE err409) -- conflict
              ex <- case root ^. jobs . at jobid of
-                 Nothing -> do putState root
+                 Nothing -> do putState pristine
                                throwE err404 -- not found
                  Just ex  -> return ex
-             let Executions {_nextExecutionId,executable} = ex
+             let Executions {executable} = ex
                  Job {scriptPath} = executable
-                 nextExecutionIdInt = succ _nextExecutionId
-                 nextExecutionIdText = Data.Text.pack (show nextExecutionIdInt) 
              a <- liftIO (async (execute (piped (proc scriptPath [])) (pure ())))
-             let newExecution = Execution {blah="",_bloh=Right a}
-                 ex' = ex & nextExecutionId .~ nextExecutionIdInt
-                          & executions . at nextExecutionIdText .~ Just newExecution
+             let newExecution = Execution {blah="started",_bloh=Right a}
+                 ex' = ex & executions . at currentId .~ Just newExecution
                  root' = root & jobs . at jobid .~ Just ex'
-             putState root'
+             putState (nextId,root')
              let linkProxy = Proxy :: (Proxy ("jobs" :> Capture "jobid" Text :> "executions" :> Capture "execid" Text :> Get '[JSON,HTML] (Page (Execution ()))))
-                 linkUri = show (safeLink (Proxy :: Proxy JobsAPI) linkProxy jobid nextExecutionIdText)
+                 linkUri = show (safeLink (Proxy :: Proxy JobsAPI) linkProxy jobid currentId)
              return (addHeader linkUri (Page (Created linkUri))))
     :<|> (\jobid -> do
              root <- readState_ 
@@ -76,7 +78,6 @@ makeHandlersFromRef ref =
                  []  -> throwE err404
                  exe : _ -> return (Page exe))
     where
-    readState = liftIO (atomically (readTMVar ref))
-    readState_ = void <$> readState
-    takeState = liftIO (atomically (takeTMVar ref))
-    putState j = liftIO (atomically (putTMVar ref j))
+    readState_ = void . extract <$> liftIO (atomically (readTMVar ref))
+    takeState  = liftIO (atomically (takeTMVar ref))
+    putState   = \j -> liftIO (atomically (putTMVar ref j))

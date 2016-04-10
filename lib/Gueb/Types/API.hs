@@ -43,13 +43,9 @@ instance ToHtml (Page (Jobs ())) where
 
 data Executions script async = Executions 
     {
-        _nextExecutionId :: Int
-    ,   _executions     :: Map Text (Execution async)
+        _executions     :: Map Text (Execution async)
     ,   executable      :: script 
     } deriving (Show,Generic,ToJSON,Functor)
-
-nextExecutionId :: Lens' (Executions script async) Int
-nextExecutionId = lens _nextExecutionId (\r v -> r { _nextExecutionId = v }) 
 
 executions :: Lens' (Executions script async) (Map Text (Execution async))
 executions = lens _executions (\r v -> r { _executions = v }) 

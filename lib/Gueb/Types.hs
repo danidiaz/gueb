@@ -8,4 +8,3 @@ import qualified Data.Map.Strict as Map
 
 type Plan = Map Text Job 
 
-

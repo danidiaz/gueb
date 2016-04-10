@@ -54,3 +54,5 @@ library
       , process-streaming >= 0.9.1.0
       , stm >= 2.4.4
       , async >= 2.1.0
+      , free >= 4.10
+      , comonad >= 4
