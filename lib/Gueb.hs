@@ -62,7 +62,7 @@ launch (Job {scriptPath}) after = do
     pure (Execution {blah="started",_bloh=Right a})
 
 -- http://haskell-servant.readthedocs.org/en/tutorial/tutorial/Server.html
-makeHandlersFromRef :: MVar (Unending Text,Jobs (Async ())) -> Server JobsAPI 
+makeHandlersFromRef :: MVar (Unending ExecutionId,Jobs (Async ())) -> Server JobsAPI 
 makeHandlersFromRef ref =   
          (query id)
     :<|> (\jobid        -> query (jobs . ix jobid))
@@ -72,17 +72,17 @@ makeHandlersFromRef ref =
                     (throwE err409) -- conflict, some job already running
              let Traversal ixJob = Traversal (_2 . jobs . ix jobid)
              script <- maybeE err404 -- job not found
-                              (root ^? ixJob . executable)
+                              (preview (ixJob . executable) root)
              let Traversal atExecution = Traversal (ixJob . executions . at executionId) -- to add
              launched <- launch script
                                 (notifyJobFinished (atExecution . _Just . bloh))
-             let root' = root & atExecution .~ Just launched
+             let root' = set atExecution (Just launched) root
                  linkUri = show (safeLink jobsAPI executionEndpoint jobid executionId)
              return (root',addHeader linkUri ((Created linkUri)))))
     where
     query somelens = do root <- void . extract <$> liftIO (readMVar ref)
                         Page <$> maybeE err404
-                                        (root ^? somelens)
+                                        (preview somelens root)
     command  = \f -> do oldState <- liftIO (takeMVar ref)
                         catchE (do (newState,result) <- f oldState
                                    liftIO (do putMVar ref newState
@@ -91,5 +91,5 @@ makeHandlersFromRef ref =
                                          throwE e)
     advance = first extract . duplicate . first (runIdentity . unwrap)
     notifyJobFinished executionPointer = do
-        _ <- withMVar ref (\s -> evaluate (s & executionPointer .~ Left "fff"))
+        _ <- withMVar ref (\s -> evaluate (set executionPointer (Left "fff") s))
         pure ()

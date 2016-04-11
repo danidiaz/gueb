@@ -11,3 +11,5 @@ import qualified Data.Map.Strict as Map
 type Plan = Map Text Job 
 
 type Unending a = Cofree Identity a
+
+type ExecutionId = Text
