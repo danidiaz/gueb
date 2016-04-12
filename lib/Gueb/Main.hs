@@ -7,7 +7,6 @@
 {-# language ScopedTypeVariables #-}
 {-# language TypeOperators #-}
 {-# language NamedFieldPuns #-}
---{-# language RecordWildCards #-}
 
 module Gueb.Main (
         makeMain
@@ -15,9 +14,7 @@ module Gueb.Main (
 
 import Data.ByteString as Bytes
 import Data.Aeson
-import Control.Lens
 import Control.Exception
-import Control.Applicative
 import Options.Applicative
 
 import Servant
@@ -25,8 +22,7 @@ import Servant
 import Network.Wai
 import Network.Wai.Handler.Warp
 
-import Gueb (noJobs,makeHandlers)
-import Gueb.Types
+import Gueb (makeHandlers)
 import Gueb.Types.API
 
 jobsAPI :: Proxy JobsAPI

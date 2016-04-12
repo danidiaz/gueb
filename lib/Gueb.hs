@@ -10,15 +10,12 @@ module Gueb (
     ) where
 
 import Data.Text
-import Data.Monoid
 import Data.Functor
 import Data.Bifunctor
 import Control.Lens
-import Control.Lens.Reified
 import Control.Exception
 import Control.Monad
 import Control.Comonad
-import Control.Comonad.Env
 import Control.Comonad.Cofree
 import Control.Concurrent.MVar
 import Control.Concurrent.Async
@@ -26,7 +23,6 @@ import Control.Monad.Trans.Except
 import Control.Monad.IO.Class
 
 import Servant
-import Servant.HTML.Lucid (HTML)
 
 import Gueb.Types
 import Gueb.Types.API

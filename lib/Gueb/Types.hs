@@ -6,7 +6,6 @@ import Data.Text (Text)
 import Data.Functor.Identity
 import Data.Map.Strict
 import Control.Comonad.Cofree
-import qualified Data.Map.Strict as Map
 
 type Plan = Map Text Job 
 

@@ -11,7 +11,6 @@ module Gueb.Types.API where
 import Data.Text (Text,pack)
 import Data.Map.Strict
 import Control.Lens
-import qualified Data.Map.Strict as Map
 import Data.Aeson
 
 import GHC.Generics
