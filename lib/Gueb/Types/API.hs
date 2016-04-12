@@ -19,18 +19,21 @@ import Lucid
 import Servant.API
 import Servant.HTML.Lucid
 
+type JobId = Text
+
+type ExecutionId = Text
 
 -- http://haskell-servant.readthedocs.org/en/stable/tutorial/ApiType.html
 type JobsAPI = "jobs" :> Get '[JSON,HTML] (Page (Jobs ())) 
-          :<|> "jobs" :> Capture "jobid" Text :> Get '[JSON,HTML] (Page (Executions Job ()))
+          :<|> "jobs" :> Capture "jobid" JobId :> Get '[JSON,HTML] (Page (Executions Job ()))
           :<|> ExecutionEndpoint
-          :<|> "jobs" :> Capture "jobid" Text :> PostCreated '[JSON,HTML] (Headers '[Header "Location" String] (Page Created))
+          :<|> "jobs" :> Capture "jobid" ExecutionId :> PostCreated '[JSON,HTML] (Headers '[Header "Location" String] (Page Created))
 
 type ExecutionEndpoint = 
-               "jobs" :> Capture "jobid" Text :> "executions" :> Capture "execid" Text :> Get '[JSON,HTML] (Page (Execution ()))
+               "jobs" :> Capture "jobid" JobId :> "executions" :> Capture "execid" ExecutionId :> Get '[JSON,HTML] (Page (Execution ()))
 
 
-newtype Jobs async = Jobs { _jobs :: Map Text (Executions Job async) } deriving (Show,Generic,ToJSON,Functor)
+newtype Jobs async = Jobs { _jobs :: Map JobId (Executions Job async) } deriving (Show,Generic,ToJSON,Functor)
 
 jobs :: Lens' (Jobs async) (Map Text (Executions Job async)) 
 jobs = lens _jobs (\r v -> r { _jobs = v }) 
@@ -45,7 +48,7 @@ instance ToHtml (Page (Jobs ())) where
 
 data Executions script async = Executions 
     {
-        _executions     :: Map Text (Execution async)
+        _executions     :: Map ExecutionId (Execution async)
     ,   _executable     :: script 
     } deriving (Show,Generic,ToJSON,Functor)
 
