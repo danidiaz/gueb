@@ -74,7 +74,7 @@ makeHandlersFromRef ref =
                                 (notifyJobFinished (atExecution . _Just . bloh))
              let root' = set atExecution (Just launched) root
                  linkUri = show (safeLink jobsAPI executionEndpoint jobid executionId)
-             return (root',addHeader linkUri ((Created linkUri)))))
+             return (root',addHeader linkUri (Created linkUri))))
     where
     query somelens = do root <- void . extract <$> liftIO (readMVar ref)
                         Page <$> maybeE err404
