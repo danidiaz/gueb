@@ -11,6 +11,7 @@ module Gueb.Types.API where
 
 import Data.Text (Text,pack)
 import Data.Map.Strict
+import Data.Proxy
 import Control.Lens
 import Data.Aeson
 
@@ -26,13 +27,24 @@ type ExecutionId = Text
 
 -- http://haskell-servant.readthedocs.org/en/stable/tutorial/ApiType.html
 type JobsAPI = "jobs" :> Get '[JSON,HTML] (Page (Jobs ())) 
-          :<|> "jobs" :> Capture "jobid" JobId :> Get '[JSON,HTML] (Page (Executions Job ()))
+          :<|> JobEndpoint
           :<|> ExecutionEndpoint
           :<|> "jobs" :> Capture "jobid" ExecutionId :> PostCreated '[JSON,HTML] (Headers '[Header "Location" String] (Page Created))
 
-type ExecutionEndpoint = 
-               "jobs" :> Capture "jobid" JobId :> "executions" :> Capture "execid" ExecutionId :> Get '[JSON,HTML] (Page (Execution ()))
+jobsAPI :: Proxy JobsAPI
+jobsAPI = Proxy
 
+type JobEndpoint = 
+           "jobs" :> Capture "jobid" JobId :> Get '[JSON,HTML] (Page (Executions Job ()))
+
+jobEndpoint :: Proxy JobEndpoint
+jobEndpoint = Proxy
+
+type ExecutionEndpoint = 
+           "jobs" :> Capture "jobid" JobId :> "executions" :> Capture "execid" ExecutionId :> Get '[JSON,HTML] (Page (Execution ()))
+
+executionEndpoint :: Proxy ExecutionEndpoint
+executionEndpoint = Proxy
 
 newtype Jobs async = Jobs { _jobs :: Map JobId (Executions Job async) } deriving (Show,Generic,ToJSON,Functor)
 
@@ -71,6 +83,10 @@ instance ToHtml a => ToHtml (Executions a ()) where
                   pure ()
             where
             tf i v = div_ $ do p_ $ toHtml i
+                               div_ $ do form_ [ action_ (pack (show (safeLink jobsAPI jobEndpoint i)))
+                                               , method_ "POST"
+                                               ]
+                                               $ do input_ [ type_ "submit", value_ "Start job"]
                                toHtml v
     toHtmlRaw = toHtml
 

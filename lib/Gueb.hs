@@ -29,11 +29,6 @@ import Gueb.Types.API
 
 import System.Process.Streaming
 
-jobsAPI :: Proxy JobsAPI
-jobsAPI = Proxy
-
-executionEndpoint :: Proxy ExecutionEndpoint
-executionEndpoint = Proxy
 
 noJobs :: Jobs ()
 noJobs = Jobs mempty
@@ -84,12 +79,15 @@ startExecution jobId (advance -> (executionId,root)) deferrer = do
     Job {scriptPath} <- maybeE err404 -- job not found
                                (preview (ixJob . executable) root)
     let Traversal atExecution = Traversal (ixJob . executions . at executionId) -- to add
-    pid <- liftIO (deferrer (execute (piped (proc scriptPath [])) (pure ()))
-                            (set (atExecution . _Just . bloh) (Left "foo")))
-    let launched = Execution {blah="started",_bloh=Right pid}
-        root' = set atExecution (Just launched) root
+    launched <- liftIO (launch scriptPath atExecution)
+    let root' = set atExecution (Just launched) root
         linkUri = show (safeLink jobsAPI executionEndpoint jobId executionId)
     return (root',addHeader linkUri (Created linkUri))
+    where
+        launch scriptPath atExecution = do 
+            pid <- deferrer (execute (piped (proc scriptPath [])) (pure ()))
+                            (set (atExecution . _Just . bloh) (Left "foo"))
+            pure (Execution {blah="started",_bloh=Right pid})
         
 {-| World's most obscure i++		
 

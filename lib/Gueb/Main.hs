@@ -25,9 +25,6 @@ import Network.Wai.Handler.Warp
 import Gueb (makeHandlers)
 import Gueb.Types.API
 
-jobsAPI :: Proxy JobsAPI
-jobsAPI = Proxy
-
 readJSON :: FromJSON a => FilePath -> IO a
 readJSON path = do
     bytes <- Bytes.readFile path
