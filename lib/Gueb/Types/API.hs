@@ -1,4 +1,5 @@
 {-# language FlexibleInstances #-}
+{-# language FlexibleContexts #-}
 {-# language DataKinds #-}
 {-# language TypeOperators #-}
 {-# language DeriveFunctor #-}
@@ -39,7 +40,12 @@ jobs :: Lens' (Jobs async) (Map Text (Executions Job async))
 jobs = lens _jobs (\r v -> r { _jobs = v }) 
 
 instance ToHtml (Jobs ()) where
-    toHtml _ = return ()
+    toHtml js = div_ $ do
+        div_ $ do itraverse tf (_jobs js)
+                  pure ()
+            where
+            tf i v = div_ $ do p_ $ toHtml i
+                               toHtml v
     toHtmlRaw = toHtml
 
 instance ToHtml (Page (Jobs ())) where
@@ -59,13 +65,18 @@ executable :: Lens' (Executions script async) script
 executable = lens _executable (\r v -> r { _executable = v }) 
 
 instance ToHtml a => ToHtml (Executions a ()) where
-    toHtml _ = div_ $ do
-        undefined
+    toHtml x = div_ $ do
+        div_ $ toHtml (_executable x)
+        div_ $ do itraverse tf (_executions x)
+                  pure ()
+            where
+            tf i v = div_ $ do p_ $ toHtml i
+                               toHtml v
     toHtmlRaw = toHtml
 
 instance ToHtml a => ToHtml (Page (Executions a ())) where
     toHtml    = pageWithTitle "Executions"
-    toHtmlRaw = toHtml
+    toHtmlRaw = toHtml  
 
 data Execution a = Execution
     {
