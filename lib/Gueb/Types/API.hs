@@ -26,22 +26,22 @@ type JobId = Text
 type ExecutionId = Text
 
 -- http://haskell-servant.readthedocs.org/en/stable/tutorial/ApiType.html
-type JobsAPI = "jobs" :> Get '[JSON,HTML] (Page (Jobs ())) 
+type JobsAPI = "jobs" :> Get '[HTML,JSON] (Page (Jobs ())) 
           :<|> JobEndpoint
           :<|> ExecutionEndpoint
-          :<|> "jobs" :> Capture "jobid" ExecutionId :> PostCreated '[JSON,HTML] (Headers '[Header "Location" String] (Page Created))
+          :<|> "jobs" :> Capture "jobid" ExecutionId :> PostCreated '[HTML,JSON] (Headers '[Header "Location" String] (Page Created))
 
 jobsAPI :: Proxy JobsAPI
 jobsAPI = Proxy
 
 type JobEndpoint = 
-           "jobs" :> Capture "jobid" JobId :> Get '[JSON,HTML] (Page (Executions Job ()))
+           "jobs" :> Capture "jobid" JobId :> Get '[HTML,JSON] (Page (Executions Job ()))
 
 jobEndpoint :: Proxy JobEndpoint
 jobEndpoint = Proxy
 
 type ExecutionEndpoint = 
-           "jobs" :> Capture "jobid" JobId :> "executions" :> Capture "execid" ExecutionId :> Get '[JSON,HTML] (Page (Execution ()))
+           "jobs" :> Capture "jobid" JobId :> "executions" :> Capture "execid" ExecutionId :> Get '[HTML,JSON] (Page (Execution ()))
 
 executionEndpoint :: Proxy ExecutionEndpoint
 executionEndpoint = Proxy
@@ -61,7 +61,7 @@ instance ToHtml (Jobs ()) where
     toHtmlRaw = toHtml
 
 instance ToHtml (Page (Jobs ())) where
-    toHtml _ = return ()
+    toHtml = pageWithTitle "Jobs"
     toHtmlRaw = toHtml
 
 data Executions script async = Executions 
@@ -146,7 +146,7 @@ instance ToHtml (Page Created) where
 
 newtype Page a = Page { getContent :: a } deriving (Show,Generic,ToJSON)
 
-pageWithTitle :: (Monad m, ToHtml contents) => Text -> contents -> HtmlT m ()
-pageWithTitle title contents = html_ $ do
+pageWithTitle :: (Monad m, ToHtml contents) => Text -> Page contents -> HtmlT m ()
+pageWithTitle title (Page contents) = html_ $ do
     head_ (title_ (toHtml title))
     body_ (toHtml contents)
