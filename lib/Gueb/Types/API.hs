@@ -5,7 +5,7 @@
 {-# language DeriveFunctor #-}
 {-# language DeriveGeneric #-}
 {-# language DeriveAnyClass #-}
-{-# LANGUAGE OverloadedStrings #-}
+{-# language OverloadedStrings #-}
 
 module Gueb.Types.API where
 
