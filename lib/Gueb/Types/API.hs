@@ -57,6 +57,10 @@ instance ToHtml (Jobs ()) where
                   pure ()
             where
             tf i v = div_ $ do p_ $ toHtml i
+                               div_ $ do form_ [ action_ (pack (show (safeLink jobsAPI jobEndpoint i)))
+                                               , method_ "POST"
+                                               ]
+                                               $ do input_ [ type_ "submit", value_ "Start job"]
                                toHtml v
     toHtmlRaw = toHtml
 
@@ -83,10 +87,6 @@ instance ToHtml a => ToHtml (Executions a ()) where
                   pure ()
             where
             tf i v = div_ $ do p_ $ toHtml i
-                               div_ $ do form_ [ action_ (pack (show (safeLink jobsAPI jobEndpoint i)))
-                                               , method_ "POST"
-                                               ]
-                                               $ do input_ [ type_ "submit", value_ "Start job"]
                                toHtml v
     toHtmlRaw = toHtml
 
