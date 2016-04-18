@@ -53,7 +53,7 @@ jobs = lens _jobs (\r v -> r { _jobs = v })
 
 instance ToHtml (Jobs ()) where
     toHtml js = div_ $ do
-        div_ $ do itraverse tf (_jobs js)
+        div_ $ do _ <- itraverse tf (_jobs js)
                   pure ()
             where
             tf i v = div_ $ do p_ $ toHtml i
@@ -83,7 +83,7 @@ executable = lens _executable (\r v -> r { _executable = v })
 instance ToHtml a => ToHtml (Executions a ()) where
     toHtml x = div_ $ do
         div_ $ toHtml (_executable x)
-        div_ $ do itraverse tf (_executions x)
+        div_ $ do _ <- itraverse tf (_executions x)
                   pure ()
             where
             tf i v = div_ $ do p_ $ toHtml i

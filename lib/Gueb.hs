@@ -58,7 +58,7 @@ makeHandlersFromRef ref =
                                 (\e -> do liftIO (putMVar ref oldState)
                                           throwE e)
     deferrer action post = 
-        async (do (do action
+        async (do (do _ <- action
                       notify post) 
                       `onException` notify post)
     notify change = do
