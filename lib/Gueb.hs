@@ -74,14 +74,14 @@ startExecution :: JobId
                -> ExceptT ServantErr IO (GlobalState, Headers '[Header "Location" String] Created)
 startExecution jobId (advance -> (executionId,root)) deferrer = do
     unless (not (has (_2 . jobs . folded . executions . folded . bloh . _Right) root)) 
-           (throwE err409) -- conflict, some job already running
+           (throwE err409{errBody="{\"result\" : \"oops\"}"}) -- conflict, some job already running
     let Traversal ixJob = Traversal (_2 . jobs . ix jobId)
-    Job {scriptPath} <- maybeE err404 -- job not found
+    Job {scriptPath} <- maybeE err404{errBody="{ \"result\" : \"oops\"}"} -- job not found
                                (preview (ixJob . executable) root)
     let Traversal atExecution = Traversal (ixJob . executions . at executionId) -- to add
     launched <- liftIO (launch scriptPath atExecution)
     let root' = set atExecution (Just launched) root
-        linkUri = show (safeLink jobsAPI executionEndpoint jobId executionId)
+        linkUri = '/':show (safeLink jobsAPI executionEndpoint jobId executionId)
     return (root',addHeader linkUri (Created linkUri))
     where
         launch scriptPath atExecution = do 
