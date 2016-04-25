@@ -1,4 +1,4 @@
 #!/bin/bash
 set -e
 
-sleep 9
+sleep 5

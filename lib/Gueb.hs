@@ -61,9 +61,7 @@ makeHandlersFromRef ref =
         async (do (do _ <- action
                       notify post) 
                       `onException` notify post)
-    notify change = do
-        _ <- withMVar ref (\s -> evaluate (change s))
-        pure ()
+    notify change = modifyMVar_ ref (\s -> evaluate (change s))
 
 maybeE :: Monad m => e -> Maybe a -> ExceptT e m a   
 maybeE e = maybe (throwE e) pure 
