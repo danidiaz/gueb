@@ -150,3 +150,5 @@ pageWithTitle :: (Monad m, ToHtml contents) => Text -> Page contents -> HtmlT m 
 pageWithTitle title (Page contents) = html_ $ do
     head_ (title_ (toHtml title))
     body_ (toHtml contents)
+
+

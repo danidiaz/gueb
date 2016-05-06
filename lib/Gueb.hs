@@ -10,6 +10,8 @@ module Gueb (
     ) where
 
 import Data.Text
+import Data.Map as Map
+import Data.Aeson
 import Data.Functor
 import Data.Bifunctor
 import Control.Lens
@@ -49,7 +51,7 @@ makeHandlersFromRef ref =
     :<|> (\jobid        -> command (startExecution jobid))
     where
     query somelens = do root <- void . extract <$> liftIO (readMVar ref)
-                        Page <$> maybeE err404
+                        Page <$> noteT err404
                                         (preview somelens root)
     command handler = do oldState <- liftIO (takeMVar ref)
                          catchE (do (newState,result) <- handler oldState deferrer
@@ -63,24 +65,29 @@ makeHandlersFromRef ref =
                       `onException` notify post)
     notify change = modifyMVar_ ref (\s -> evaluate (change s))
 
-maybeE :: Monad m => e -> Maybe a -> ExceptT e m a   
-maybeE e = maybe (throwE e) pure 
+noteT :: Monad m => e -> Maybe a -> ExceptT e m a   
+noteT e = maybe (throwE e) pure 
+
+reason :: ServantErr -> Text -> ServantErr
+reason err msg = err { errBody = jsonError msg } 
+    where
+        jsonError = encode . Map.singleton ("result"::Text)
 
 startExecution :: JobId
                -> GlobalState
                -> (IO () -> (GlobalState -> GlobalState) -> IO (Async ()))
                -> ExceptT ServantErr IO (GlobalState, Headers '[Header "Location" String] Created)
 startExecution jobId (advance -> (executionId,root)) deferrer = do
-    unless (not (has (_2 . jobs . folded . executions . folded . bloh . _Right) root)) 
-           (throwE err409{errBody="{\"result\" : \"oops\"}"}) -- conflict, some job already running
-    let Traversal ixJob = Traversal (_2 . jobs . ix jobId)
-    Job {scriptPath} <- maybeE err404{errBody="{ \"result\" : \"oops\"}"} -- job not found
-                               (preview (ixJob . executable) root)
-    let Traversal atExecution = Traversal (ixJob . executions . at executionId) -- to add
+    let Traversal runningJobs = Traversal (_2 . jobs . traversed . executions . traversed . bloh . _Right)
+        Traversal ixJob       = Traversal (_2 . jobs . ix jobId)
+        Traversal atExecution = Traversal (ixJob . executions . at executionId)
+    unless (not (has runningJobs root)) 
+           (throwE (err409 `reason` "Job already running")) 
+    Job {scriptPath} <- noteT (err404 `reason` "Job not found") 
+                              (preview (ixJob . executable) root)
     launched <- liftIO (launch scriptPath atExecution)
-    let root' = set atExecution (Just launched) root
-        linkUri = '/':show (safeLink jobsAPI executionEndpoint jobId executionId)
-    return (root',addHeader linkUri (Created linkUri))
+    let linkUri = '/' : show (safeLink jobsAPI executionEndpoint jobId executionId)
+    return (set atExecution (Just launched) root,addHeader linkUri (Created linkUri))
     where
         launch scriptPath atExecution = do 
             pid <- deferrer (execute (piped (proc scriptPath [])) (pure ()))
