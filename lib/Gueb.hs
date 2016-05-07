@@ -86,8 +86,9 @@ startExecution jobId (advance -> (executionId,root)) deferrer = do
     Job {scriptPath} <- noteT (err404 `reason` "Job not found") 
                               (preview (ixJob . executable) root)
     launched <- liftIO (launch scriptPath atExecution)
-    let linkUri = '/' : show (safeLink jobsAPI executionEndpoint jobId executionId)
-    return (set atExecution (Just launched) root,addHeader linkUri (Created linkUri))
+    return (set atExecution (Just launched) root
+           ,let linkUri = '/' : show (safeLink jobsAPI executionEndpoint jobId executionId)
+            in addHeader linkUri (Created linkUri))
     where
         launch scriptPath atExecution = do 
             pid <- deferrer (execute (piped (proc scriptPath [])) (pure ()))
