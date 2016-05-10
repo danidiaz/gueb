@@ -9,4 +9,4 @@ Yeah, it does sound unsafe.
 Development
 ===========
 
-cabal exec -- ghcid --test=":run makeMain --port 8000 samples/plan.json"{
+cabal exec -- ghcid --test=":run makeMain --port 8000 samples/plan.json"
