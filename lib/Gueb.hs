@@ -14,6 +14,7 @@ import Data.Map as Map
 import Data.Aeson
 import Data.Functor
 import Data.Bifunctor
+import Data.Time
 import Control.Lens
 import Control.Exception
 import Control.Monad
@@ -93,7 +94,8 @@ startExecution jobId (advance -> (executionId,root)) deferrer = do
         launch scriptPath atExecution = do 
             pid <- deferrer (execute (piped (proc scriptPath [])) (pure ()))
                             (set (atExecution . _Just . bloh) (Left "foo"))
-            pure (Execution {blah="started",_bloh=Right pid})
+            t <- getCurrentTime
+            pure (Execution {blah=t, _bloh=Right pid})
         
 {-| World's most obscure i++		
 

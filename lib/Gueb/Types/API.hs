@@ -14,6 +14,7 @@ import Data.Map.Strict
 import Data.Proxy
 import Control.Lens
 import Data.Aeson
+import Data.Time
 
 import GHC.Generics
 
@@ -96,7 +97,7 @@ instance ToHtml a => ToHtml (Page (Executions a ())) where
 
 data Execution a = Execution
     {
-        blah :: Text
+        blah :: UTCTime
     ,   _bloh :: Either Text a
     } deriving (Show,Generic,ToJSON,Functor)
 
@@ -106,7 +107,7 @@ bloh = lens _bloh (\r v -> r { _bloh = v })
 instance ToHtml (Execution ()) where
     toHtml c = div_ $ do
         p_ $ do "Execution started at: "
-                toHtml (blah c)
+                toHtml (formatTime defaultTimeLocale "%T" (blah c))
         case _bloh c of
             Left start -> p_ $ do "Execution finished at: "
                                   toHtml start
