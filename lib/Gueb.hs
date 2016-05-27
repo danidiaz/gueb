@@ -62,8 +62,10 @@ makeHandlersFromRef ref =
                                           throwE e)
     deferrer action post = 
         async (do (do _ <- action
-                      notify post) 
-                      `onException` notify post)
+                      change <- post
+                      notify change) 
+                      `onException` (do change <- post
+                                        notify change))
     notify change = modifyMVar_ ref (\s -> evaluate (change s))
 
 noteT :: Monad m => e -> Maybe a -> ExceptT e m a   
@@ -76,10 +78,10 @@ reason err msg = err { errBody = jsonError msg }
 
 startExecution :: JobId
                -> GlobalState
-               -> (IO () -> (GlobalState -> GlobalState) -> IO (Async ()))
+               -> (IO () -> IO (GlobalState -> GlobalState) -> IO (Async ()))
                -> ExceptT ServantErr IO (GlobalState, Headers '[Header "Location" String] Created)
 startExecution jobId (advance -> (executionId,root)) deferrer = do
-    let Traversal runningJobs = Traversal (_2 . jobs . traversed . executions . traversed . bloh . _Right)
+    let Traversal runningJobs = Traversal (_2 . jobs . traversed . executions . traversed . currentState . _Right)
         Traversal ixJob       = Traversal (_2 . jobs . ix jobId)
         Traversal atExecution = Traversal (ixJob . executions . at executionId)
     unless (not (has runningJobs root)) 
@@ -93,9 +95,10 @@ startExecution jobId (advance -> (executionId,root)) deferrer = do
     where
         launch scriptPath atExecution = do 
             pid <- deferrer (execute (piped (proc scriptPath [])) (pure ()))
-                            (set (atExecution . _Just . bloh) (Left "foo"))
+                            (do t <- getCurrentTime 
+                                pure (set (atExecution . _Just . currentState) (Left t)))
             t <- getCurrentTime
-            pure (Execution {blah=t, _bloh=Right pid})
+            pure (Execution {startTime=t, _currentState=Right pid})
         
 {-| World's most obscure i++		
 

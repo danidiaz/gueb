@@ -97,21 +97,21 @@ instance ToHtml a => ToHtml (Page (Executions a ())) where
 
 data Execution a = Execution
     {
-        blah :: UTCTime
-    ,   _bloh :: Either Text a
+        startTime :: UTCTime
+    ,   _currentState :: Either UTCTime a
     } deriving (Show,Generic,ToJSON,Functor)
 
-bloh :: Lens' (Execution async) (Either Text async)
-bloh = lens _bloh (\r v -> r { _bloh = v }) 
+currentState :: Lens' (Execution async) (Either UTCTime async)
+currentState = lens _currentState (\r v -> r { _currentState = v }) 
 
 instance ToHtml (Execution ()) where
     toHtml c = div_ $ do
         p_ $ do "Execution started at: "
-                toHtml (formatTime defaultTimeLocale "%T" (blah c))
-        case _bloh c of
-            Left start -> p_ $ do "Execution finished at: "
-                                  toHtml start
-            Right ()   -> p_ $ do "Execution still ongoing"
+                toHtml (formatTime defaultTimeLocale "%T" (startTime c))
+        case _currentState c of
+            Left endTime -> p_ $ do "Execution finished at: "
+                                    toHtml (formatTime defaultTimeLocale "%T" endTime)
+            Right () -> p_ $ do "Execution still ongoing"
     toHtmlRaw = toHtml
 
 instance ToHtml (Page (Execution ())) where
