@@ -33,27 +33,28 @@ import Gueb.Types.API
 import System.Process.Streaming
 
 
-noJobs :: Jobs ()
+noJobs :: Jobs Identity ()
 noJobs = Jobs mempty
 
 makeHandlers :: Plan -> IO (Server JobsAPI)
 makeHandlers plan = do
-    let theJobs  = Jobs (fmap (Executions mempty) plan)
+    let theJobs  = Jobs (fmap (Identity . Executions mempty) plan)
         idstream = Data.Text.pack . show <$> coiter (Identity . succ) (0::Int)
     tvar <- newMVar (idstream,theJobs)
     pure (makeHandlersFromRef tvar)
 
 -- http://haskell-servant.readthedocs.org/en/tutorial/tutorial/Server.html
-makeHandlersFromRef :: MVar (Unending ExecutionId,Jobs (Async ())) -> Server JobsAPI 
+makeHandlersFromRef :: MVar (Unending ExecutionId,Jobs Identity (Async ())) -> Server JobsAPI 
 makeHandlersFromRef ref =   
          (query id)
+         --(query (to (addUri "/")))
     :<|> (\jobid        -> query (jobs . ix jobid))
     :<|> (\jobid execid -> query (jobs . ix jobid . executions . ix execid))
     :<|> (\jobid        -> command (startExecution jobid))
     where
     query somelens = do root <- void . extract <$> liftIO (readMVar ref)
                         Page <$> noteT err404
-                                        (preview somelens root)
+                                       (preview somelens root)
     command handler = do oldState <- liftIO (takeMVar ref)
                          catchE (do (newState,result) <- handler oldState deferrer
                                     liftIO (do putMVar ref newState
@@ -106,4 +107,9 @@ startExecution jobId (advance -> (executionId,root)) deferrer = do
 advance :: GlobalState -> (ExecutionId,GlobalState)
 advance = first extract . duplicate . first (runIdentity . unwrap)
 
+--addUri :: String -> Jobs Identity a -> Jobs Ref a
+--addUri base = undefined
+--
+--addUriExecutions :: String -> Executions x Identity a -> Executions x Ref a
+--addUriExecutions base  = undefined
 

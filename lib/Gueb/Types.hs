@@ -12,4 +12,4 @@ type Plan = Map Text Job
 
 type Unending a = Cofree Identity a
 
-type GlobalState = (Unending ExecutionId,Jobs (Async ()))
+type GlobalState = (Unending ExecutionId, Jobs () (Async ()))

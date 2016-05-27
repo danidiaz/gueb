@@ -26,8 +26,11 @@ type JobId = Text
 
 type ExecutionId = Text
 
+type Link = Text
+--type Ref = ((,) Text)
+
 -- http://haskell-servant.readthedocs.org/en/stable/tutorial/ApiType.html
-type JobsAPI = "jobs" :> Get '[HTML,JSON] (Page (Jobs ())) 
+type JobsAPI = "jobs" :> Get '[HTML,JSON] (Page (Jobs Link ())) 
           :<|> JobEndpoint
           :<|> ExecutionEndpoint
           :<|> "jobs" :> Capture "jobid" ExecutionId :> PostCreated '[HTML,JSON] (Headers '[Header "Location" String] (Page Created))
@@ -36,7 +39,7 @@ jobsAPI :: Proxy JobsAPI
 jobsAPI = Proxy
 
 type JobEndpoint = 
-           "jobs" :> Capture "jobid" JobId :> Get '[HTML,JSON] (Page (Executions Job ()))
+           "jobs" :> Capture "jobid" JobId :> Get '[HTML,JSON] (Page (Executions Job Link ()))
 
 jobEndpoint :: Proxy JobEndpoint
 jobEndpoint = Proxy
@@ -49,53 +52,54 @@ executionEndpoint = Proxy
 
 -------------------------------------------------------------------------------
 
-newtype Jobs async = Jobs { _jobs :: Map JobId (Executions Job async) } deriving (Show,Generic,ToJSON,Functor)
+newtype Jobs link async = Jobs { _jobs :: Map JobId (link, Executions Job link async) } deriving (Show,ToJSON,Generic,Functor)
 
-jobs :: Lens' (Jobs async) (Map Text (Executions Job async)) 
+jobs :: Lens' (Jobs link async) (Map Text (link, Executions Job link async)) 
 jobs = lens _jobs (\r v -> r { _jobs = v }) 
 
-instance ToHtml (Jobs ()) where
+instance ToHtml (Jobs Link ()) where
     toHtml js = div_ $ do
         div_ $ do _ <- itraverse tf (_jobs js)
                   pure ()
-            where
-            tf i v = div_ $ do p_ $ toHtml i
-                               div_ $ do form_ [ action_ (pack ('/':show (safeLink jobsAPI jobEndpoint i)))
-                                               , method_ "POST"
-                                               ]
-                                               $ do input_ [ type_ "submit", value_ "Start job"]
-                               toHtml v
+        where
+        tf i (ref,v) = div_ $ do p_ $ toHtml i
+--                               div_ $ do form_ [ action_ (pack ('/':show (safeLink jobsAPI jobEndpoint i)))
+                                 div_ $ do form_ [ action_ ref
+                                                 , method_ "POST"
+                                                     ]
+                                                     $ do input_ [ type_ "submit", value_ "Start job"]
+                                 toHtml v
     toHtmlRaw = toHtml
 
-instance ToHtml (Page (Jobs ())) where
+instance ToHtml (Page (Jobs Link ())) where
     toHtml = pageWithTitle "Jobs"
     toHtmlRaw = toHtml
 
 -------------------------------------------------------------------------------
 
-data Executions script async = Executions 
+data Executions script link async = Executions 
     {
-        _executions     :: Map ExecutionId (Execution async)
+        _executions     :: Map ExecutionId (link,Execution async)
     ,   _executable     :: script 
-    } deriving (Show,Generic,ToJSON,Functor)
+    } deriving (Show,ToJSON,Generic,Functor)
 
-executions :: Lens' (Executions script async) (Map Text (Execution async))
+executions :: Lens' (Executions script link async) (Map Text (link,Execution async))
 executions = lens _executions (\r v -> r { _executions = v }) 
 
-executable :: Lens' (Executions script async) script
+executable :: Lens' (Executions script link async) script
 executable = lens _executable (\r v -> r { _executable = v }) 
 
-instance ToHtml a => ToHtml (Executions a ()) where
+instance ToHtml a => ToHtml (Executions a link ()) where
     toHtml x = div_ $ do
         div_ $ toHtml (_executable x)
         div_ $ do _ <- itraverse tf (_executions x)
                   pure ()
             where
-            tf i v = div_ $ do p_ $ toHtml i
-                               toHtml v
+            tf i (_,v) = div_ $ do p_ $ toHtml i
+                                   toHtml v
     toHtmlRaw = toHtml
 
-instance ToHtml a => ToHtml (Page (Executions a ())) where
+instance ToHtml a => ToHtml (Page (Executions a Link ())) where
     toHtml    = pageWithTitle "Executions"
     toHtmlRaw = toHtml  
 
