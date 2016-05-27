@@ -47,6 +47,8 @@ type ExecutionEndpoint =
 executionEndpoint :: Proxy ExecutionEndpoint
 executionEndpoint = Proxy
 
+-------------------------------------------------------------------------------
+
 newtype Jobs async = Jobs { _jobs :: Map JobId (Executions Job async) } deriving (Show,Generic,ToJSON,Functor)
 
 jobs :: Lens' (Jobs async) (Map Text (Executions Job async)) 
@@ -68,6 +70,8 @@ instance ToHtml (Jobs ()) where
 instance ToHtml (Page (Jobs ())) where
     toHtml = pageWithTitle "Jobs"
     toHtmlRaw = toHtml
+
+-------------------------------------------------------------------------------
 
 data Executions script async = Executions 
     {
@@ -95,6 +99,8 @@ instance ToHtml a => ToHtml (Page (Executions a ())) where
     toHtml    = pageWithTitle "Executions"
     toHtmlRaw = toHtml  
 
+-------------------------------------------------------------------------------
+
 data Execution a = Execution
     {
         startTime :: UTCTime
@@ -118,6 +124,8 @@ instance ToHtml (Page (Execution ())) where
     toHtml    = pageWithTitle "Execution"
     toHtmlRaw = toHtml
 
+-------------------------------------------------------------------------------
+
 data Job = Job 
     {
         scriptPath :: FilePath
@@ -133,6 +141,8 @@ instance ToHtml (Page Job) where
     toHtml    = pageWithTitle "Job"
     toHtmlRaw = toHtml
     
+-------------------------------------------------------------------------------
+
 newtype Created = Created { getLink :: String } deriving (Show,Generic,ToJSON)
 
 instance ToHtml Created where
@@ -144,6 +154,8 @@ instance ToHtml Created where
 instance ToHtml (Page Created) where
     toHtml    = pageWithTitle "Resource created"
     toHtmlRaw = toHtml
+
+-------------------------------------------------------------------------------
 
 newtype Page a = Page { getContent :: a } deriving (Show,Generic,ToJSON)
 
