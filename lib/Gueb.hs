@@ -114,9 +114,6 @@ addUri (Jobs j) = Jobs (iover itraversed addUriExecutions j)
     addUriExecutions i xs = 
         xs { executionsView = pack ('/':show (safeLink jobsAPI jobEndpoint i)), 
              _executions = iover itraversed (addUriExecution i) (_executions xs)}
-    addUriExecution i i' x = x { executionView = pack ('/': show (safeLink jobsAPI executionEndpoint i i')) } 
-
---
---addUriExecutions :: String -> Executions x Identity a -> Executions x Ref a
---addUriExecutions base  = undefined
+    addUriExecution i i' x = 
+        x { executionView = pack ('/': show (safeLink jobsAPI executionEndpoint i i')) } 
 

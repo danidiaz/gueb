@@ -30,22 +30,22 @@ type L = Text
 --type Ref = ((,) Text)
 
 -- http://haskell-servant.readthedocs.org/en/stable/tutorial/ApiType.html
-type JobsAPI = "jobs" :> Get '[HTML,JSON] (Page (Jobs L ())) 
+type JobsAPI = Get '[HTML,JSON] (Page (Jobs L ())) 
           :<|> JobEndpoint
           :<|> ExecutionEndpoint
-          :<|> "jobs" :> Capture "jobid" ExecutionId :> PostCreated '[HTML,JSON] (Headers '[Header "Location" String] (Page Created))
+          :<|> Capture "jobid" ExecutionId :> PostCreated '[HTML,JSON] (Headers '[Header "Location" String] (Page Created))
 
 jobsAPI :: Proxy JobsAPI
 jobsAPI = Proxy
 
 type JobEndpoint = 
-           "jobs" :> Capture "jobid" JobId :> Get '[HTML,JSON] (Page (Executions Job L ()))
+           Capture "jobid" JobId :> Get '[HTML,JSON] (Page (Executions Job L ()))
 
 jobEndpoint :: Proxy JobEndpoint
 jobEndpoint = Proxy
 
 type ExecutionEndpoint = 
-           "jobs" :> Capture "jobid" JobId :> "executions" :> Capture "execid" ExecutionId :> Get '[HTML,JSON] (Page (Execution L ()))
+           Capture "jobid" JobId :> "executions" :> Capture "execid" ExecutionId :> Get '[HTML,JSON] (Page (Execution L ()))
 
 executionEndpoint :: Proxy ExecutionEndpoint
 executionEndpoint = Proxy
@@ -63,7 +63,6 @@ instance ToHtml (Jobs L ()) where
                   pure ()
         where
         tf i v = div_ $ do p_ $ toHtml i
---                         div_ $ do form_ [ action_ (pack ('/':show (safeLink jobsAPI jobEndpoint i)))
                            div_ $ do form_ [ action_ (executionsView v)
                                            , method_ "POST"
                                                ]
@@ -96,7 +95,7 @@ instance ToHtml a => ToHtml (Executions a L ()) where
         div_ $ do _ <- itraverse tf (_executions x)
                   pure ()
             where
-            tf i v = div_ $ do p_ $ toHtml i
+            tf i v = div_ $ do p_ $ a_ [href_ (executionView v)] (toHtml i)
                                toHtml v
     toHtmlRaw = toHtml
 
