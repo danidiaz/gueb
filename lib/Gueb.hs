@@ -3,6 +3,7 @@
 {-# language TypeOperators #-}
 {-# language OverloadedStrings #-}
 {-# language ViewPatterns #-}
+{-# language FlexibleContexts #-}
 
 module Gueb (
         noJobs
@@ -33,18 +34,18 @@ import Gueb.Types.API
 import System.Process.Streaming
 
 
-noJobs :: Jobs Identity ()
+noJobs :: Jobs () ()
 noJobs = Jobs mempty
 
 makeHandlers :: Plan -> IO (Server JobsAPI)
 makeHandlers plan = do
-    let theJobs  = Jobs (fmap (Identity . Executions mempty) plan)
+    let theJobs  = Jobs (fmap (Executions () mempty) plan)
         idstream = Data.Text.pack . show <$> coiter (Identity . succ) (0::Int)
     tvar <- newMVar (idstream,theJobs)
     pure (makeHandlersFromRef tvar)
 
 -- http://haskell-servant.readthedocs.org/en/tutorial/tutorial/Server.html
-makeHandlersFromRef :: MVar (Unending ExecutionId,Jobs Identity (Async ())) -> Server JobsAPI 
+makeHandlersFromRef :: MVar (Unending ExecutionId,Jobs () (Async ())) -> Server JobsAPI 
 makeHandlersFromRef ref =   
          (query id)
          --(query (to (addUri "/")))
@@ -52,7 +53,7 @@ makeHandlersFromRef ref =
     :<|> (\jobid execid -> query (jobs . ix jobid . executions . ix execid))
     :<|> (\jobid        -> command (startExecution jobid))
     where
-    query somelens = do root <- void . extract <$> liftIO (readMVar ref)
+    query somelens = do root <- void . addUri . extract <$> liftIO (readMVar ref)
                         Page <$> noteT err404
                                        (preview somelens root)
     command handler = do oldState <- liftIO (takeMVar ref)
@@ -99,7 +100,7 @@ startExecution jobId (advance -> (executionId,root)) deferrer = do
                             (do t <- getCurrentTime 
                                 pure (set (atExecution . _Just . currentState) (Left t)))
             t <- getCurrentTime
-            pure (Execution {startTime=t, _currentState=Right pid})
+            pure (Execution {executionView = (), startTime=t, _currentState=Right pid})
         
 {-| World's most obscure i++		
 
@@ -107,8 +108,14 @@ startExecution jobId (advance -> (executionId,root)) deferrer = do
 advance :: GlobalState -> (ExecutionId,GlobalState)
 advance = first extract . duplicate . first (runIdentity . unwrap)
 
---addUri :: String -> Jobs Identity a -> Jobs Ref a
---addUri base = undefined
+addUri :: Jobs () a -> Jobs L a
+addUri (Jobs j) = Jobs (iover itraversed addUriExecutions j)
+    where
+    addUriExecutions i xs = 
+        xs { executionsView = pack ('/':show (safeLink jobsAPI jobEndpoint i)), 
+             _executions = iover itraversed (addUriExecution i) (_executions xs)}
+    addUriExecution i i' x = x { executionView = pack ('/': show (safeLink jobsAPI executionEndpoint i i')) } 
+
 --
 --addUriExecutions :: String -> Executions x Identity a -> Executions x Ref a
 --addUriExecutions base  = undefined

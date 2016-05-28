@@ -26,11 +26,11 @@ type JobId = Text
 
 type ExecutionId = Text
 
-type Link = Text
+type L = Text
 --type Ref = ((,) Text)
 
 -- http://haskell-servant.readthedocs.org/en/stable/tutorial/ApiType.html
-type JobsAPI = "jobs" :> Get '[HTML,JSON] (Page (Jobs Link ())) 
+type JobsAPI = "jobs" :> Get '[HTML,JSON] (Page (Jobs L ())) 
           :<|> JobEndpoint
           :<|> ExecutionEndpoint
           :<|> "jobs" :> Capture "jobid" ExecutionId :> PostCreated '[HTML,JSON] (Headers '[Header "Location" String] (Page Created))
@@ -39,39 +39,39 @@ jobsAPI :: Proxy JobsAPI
 jobsAPI = Proxy
 
 type JobEndpoint = 
-           "jobs" :> Capture "jobid" JobId :> Get '[HTML,JSON] (Page (Executions Job Link ()))
+           "jobs" :> Capture "jobid" JobId :> Get '[HTML,JSON] (Page (Executions Job L ()))
 
 jobEndpoint :: Proxy JobEndpoint
 jobEndpoint = Proxy
 
 type ExecutionEndpoint = 
-           "jobs" :> Capture "jobid" JobId :> "executions" :> Capture "execid" ExecutionId :> Get '[HTML,JSON] (Page (Execution ()))
+           "jobs" :> Capture "jobid" JobId :> "executions" :> Capture "execid" ExecutionId :> Get '[HTML,JSON] (Page (Execution L ()))
 
 executionEndpoint :: Proxy ExecutionEndpoint
 executionEndpoint = Proxy
 
 -------------------------------------------------------------------------------
 
-newtype Jobs link async = Jobs { _jobs :: Map JobId (link, Executions Job link async) } deriving (Show,ToJSON,Generic,Functor)
+newtype Jobs link async = Jobs { _jobs :: Map JobId (Executions Job link async) } deriving (Show,ToJSON,Generic,Functor)
 
-jobs :: Lens' (Jobs link async) (Map Text (link, Executions Job link async)) 
+jobs :: Lens' (Jobs link async) (Map Text (Executions Job link async)) 
 jobs = lens _jobs (\r v -> r { _jobs = v }) 
 
-instance ToHtml (Jobs Link ()) where
+instance ToHtml (Jobs L ()) where
     toHtml js = div_ $ do
         div_ $ do _ <- itraverse tf (_jobs js)
                   pure ()
         where
-        tf i (ref,v) = div_ $ do p_ $ toHtml i
---                               div_ $ do form_ [ action_ (pack ('/':show (safeLink jobsAPI jobEndpoint i)))
-                                 div_ $ do form_ [ action_ ref
-                                                 , method_ "POST"
-                                                     ]
-                                                     $ do input_ [ type_ "submit", value_ "Start job"]
-                                 toHtml v
+        tf i v = div_ $ do p_ $ toHtml i
+--                         div_ $ do form_ [ action_ (pack ('/':show (safeLink jobsAPI jobEndpoint i)))
+                           div_ $ do form_ [ action_ (executionsView v)
+                                           , method_ "POST"
+                                               ]
+                                               $ do input_ [ type_ "submit", value_ "Start job"]
+                           toHtml v
     toHtmlRaw = toHtml
 
-instance ToHtml (Page (Jobs Link ())) where
+instance ToHtml (Page (Jobs L ())) where
     toHtml = pageWithTitle "Jobs"
     toHtmlRaw = toHtml
 
@@ -79,42 +79,44 @@ instance ToHtml (Page (Jobs Link ())) where
 
 data Executions script link async = Executions 
     {
-        _executions     :: Map ExecutionId (link,Execution async)
+        executionsView :: link
+    ,   _executions     :: Map ExecutionId (Execution link async)
     ,   _executable     :: script 
     } deriving (Show,ToJSON,Generic,Functor)
 
-executions :: Lens' (Executions script link async) (Map Text (link,Execution async))
+executions :: Lens' (Executions script link async) (Map Text (Execution link async))
 executions = lens _executions (\r v -> r { _executions = v }) 
 
 executable :: Lens' (Executions script link async) script
 executable = lens _executable (\r v -> r { _executable = v }) 
 
-instance ToHtml a => ToHtml (Executions a link ()) where
+instance ToHtml a => ToHtml (Executions a L ()) where
     toHtml x = div_ $ do
         div_ $ toHtml (_executable x)
         div_ $ do _ <- itraverse tf (_executions x)
                   pure ()
             where
-            tf i (_,v) = div_ $ do p_ $ toHtml i
-                                   toHtml v
+            tf i v = div_ $ do p_ $ toHtml i
+                               toHtml v
     toHtmlRaw = toHtml
 
-instance ToHtml a => ToHtml (Page (Executions a Link ())) where
+instance ToHtml a => ToHtml (Page (Executions a L ())) where
     toHtml    = pageWithTitle "Executions"
     toHtmlRaw = toHtml  
 
 -------------------------------------------------------------------------------
 
-data Execution a = Execution
+data Execution link a = Execution
     {
-        startTime :: UTCTime
+        executionView :: link
+    ,   startTime :: UTCTime
     ,   _currentState :: Either UTCTime a
     } deriving (Show,Generic,ToJSON,Functor)
 
-currentState :: Lens' (Execution async) (Either UTCTime async)
+currentState :: Lens' (Execution link async) (Either UTCTime async)
 currentState = lens _currentState (\r v -> r { _currentState = v }) 
 
-instance ToHtml (Execution ()) where
+instance ToHtml (Execution L ()) where
     toHtml c = div_ $ do
         p_ $ do "Execution started at: "
                 toHtml (formatTime defaultTimeLocale "%T" (startTime c))
@@ -124,7 +126,7 @@ instance ToHtml (Execution ()) where
             Right () -> p_ $ do "Execution still ongoing"
     toHtmlRaw = toHtml
 
-instance ToHtml (Page (Execution ())) where
+instance ToHtml (Page (Execution L ())) where
     toHtml    = pageWithTitle "Execution"
     toHtmlRaw = toHtml
 
