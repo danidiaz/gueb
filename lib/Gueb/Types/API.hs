@@ -62,12 +62,8 @@ instance ToHtml (Jobs L ()) where
         div_ $ do _ <- itraverse tf (_jobs js)
                   pure ()
         where
-        tf i v = div_ $ do p_ $ toHtml i
-                           div_ $ do form_ [ action_ (executionsView v)
-                                           , method_ "POST"
-                                               ]
-                                               $ do input_ [ type_ "submit", value_ "Start job"]
-                           toHtml v
+        tf i v = div_ $ do p_ $ a_ [href_ (executionsView v)] (toHtml i)
+                           toHtml (""::Text)
     toHtmlRaw = toHtml
 
 instance ToHtml (Page (Jobs L ())) where
@@ -92,6 +88,10 @@ executable = lens _executable (\r v -> r { _executable = v })
 instance ToHtml a => ToHtml (Executions a L ()) where
     toHtml x = div_ $ do
         div_ $ toHtml (_executable x)
+        div_ $ do form_ [ action_ (executionsView x)
+                        , method_ "POST"
+                        ]
+                        $ do input_ [ type_ "submit", value_ "Start job"]
         div_ $ do _ <- itraverse tf (_executions x)
                   pure ()
             where
