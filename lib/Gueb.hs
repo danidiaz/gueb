@@ -14,13 +14,13 @@ import Data.Text
 import Data.Map as Map
 import Data.Aeson
 import Data.Functor
-import Data.Bifunctor
+import Data.Bifunctor (first)
 import Data.Time
 import Control.Lens
 import Control.Exception
 import Control.Monad
 import Control.Comonad
-import Control.Comonad.Cofree
+import Control.Comonad.Cofree (coiter,unwrap)
 import Control.Concurrent.MVar
 import Control.Concurrent.Async
 import Control.Monad.Trans.Except

@@ -26,12 +26,6 @@ type JobId = Text
 
 type ExecutionId = Text
 
-data Links = Links
-           {
-             upwards :: Text
-           , this :: Text
-           } deriving (Show,Generic,ToJSON)
-
 -- http://haskell-servant.readthedocs.org/en/stable/tutorial/ApiType.html
 type JobsAPI = JobsEndpoint
           :<|> JobEndpoint
@@ -168,4 +162,12 @@ pageWithTitle :: (Monad m, ToHtml contents) => Text -> Page contents -> HtmlT m 
 pageWithTitle title (Page contents) = html_ $ do
     head_ (title_ (toHtml title))
     body_ (toHtml contents)
+
+-------------------------------------------------------------------------------
+
+data Links = Links
+           {
+             upwards :: Text
+           , this :: Text
+           } deriving (Show,Generic,ToJSON)
 
