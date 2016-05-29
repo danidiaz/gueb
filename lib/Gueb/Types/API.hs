@@ -94,7 +94,7 @@ instance ToHtml a => ToHtml (Executions a Links ()) where
     toHtmlRaw = toHtml
 
 instance ToHtml a => ToHtml (Page (Executions a Links ())) where
-    toHtml    = pageWithTitle "Executions"
+    toHtml p@(Page x) = pageWithTitleAndUplink "Executions" (upwards (executionsView x)) p
     toHtmlRaw = toHtml  
 
 -------------------------------------------------------------------------------
@@ -120,7 +120,7 @@ instance ToHtml (Execution Links ()) where
     toHtmlRaw = toHtml
 
 instance ToHtml (Page (Execution Links ())) where
-    toHtml    = pageWithTitle "Execution"
+    toHtml p@(Page x) = pageWithTitleAndUplink "Execution" (upwards (executionView x)) p
     toHtmlRaw = toHtml
 
 -------------------------------------------------------------------------------
@@ -136,18 +136,15 @@ instance ToHtml Job where
         toHtml (scriptPath c)
     toHtmlRaw = toHtml
 
-instance ToHtml (Page Job) where
-    toHtml    = pageWithTitle "Job"
-    toHtmlRaw = toHtml
-    
 -------------------------------------------------------------------------------
 
 newtype Created = Created { getLink :: String } deriving (Show,Generic,ToJSON)
 
 instance ToHtml Created where
     toHtml (Created link) = div_ $ p_ $ do
-        "Resource created at: "
-        a_ [href_ (pack link)] (toHtml link)
+        "Resource created "
+        a_ [href_ (pack link)] "here"
+        "."
     toHtmlRaw = toHtml
 
 instance ToHtml (Page Created) where
@@ -162,6 +159,12 @@ pageWithTitle :: (Monad m, ToHtml contents) => Text -> Page contents -> HtmlT m 
 pageWithTitle title (Page contents) = html_ $ do
     head_ (title_ (toHtml title))
     body_ (toHtml contents)
+
+pageWithTitleAndUplink :: (Monad m, ToHtml contents) => Text -> Text -> Page contents -> HtmlT m ()
+pageWithTitleAndUplink title url (Page contents) = html_ $ do
+    head_ (title_ (toHtml title))
+    body_ (do div_ $ toHtml contents
+              div_ $ a_ [href_ url] (toHtml ("up"::Text)))
 
 -------------------------------------------------------------------------------
 
