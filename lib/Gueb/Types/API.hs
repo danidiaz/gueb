@@ -157,6 +157,7 @@ instance ToHtml (Page Created) where
 
 newtype Page a = Page { getContent :: a } deriving (Show,Generic,ToJSON)
 
+-- http://www.w3schools.com/bootstrap/bootstrap_get_started.asp
 pageWithTitle :: (Monad m, ToHtml contents) => Text -> Maybe Text -> Page contents -> HtmlT m ()
 pageWithTitle title murl (Page contents) = html_ $ do
     head_ (do title_ (toHtml title)
