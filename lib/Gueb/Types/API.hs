@@ -160,11 +160,13 @@ newtype Page a = Page { getContent :: a } deriving (Show,Generic,ToJSON)
 pageWithTitle :: (Monad m, ToHtml contents) => Text -> Maybe Text -> Page contents -> HtmlT m ()
 pageWithTitle title murl (Page contents) = html_ $ do
     head_ (do title_ (toHtml title)
+              meta_ [charset_ "utf-8"]
+              meta_ [name_ "viewport", content_ "width=device-width, initial-scale=1"]
               link_ [rel_ "stylesheet", href_ "http://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css"]
-              script_ [src_ "https://ajax.googleapis.com/ajax/libs/jquery/1.12.0/jquery.min.js"]
-              script_ [src_ "http://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"])
-    body_ (do div_ $ do div_ $ toHtml contents
-                        foldMap (\url -> div_ $ a_ [href_ url] (toHtml ("up"::Text))) murl)
+              script_ [src_ ("https://ajax.googleapis.com/ajax/libs/jquery/1.12.0/jquery.min.js")] (""::Text)
+              script_ [src_ ("http://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js")] (""::Text))
+    body_ (do container_ $ do div_ $ toHtml contents
+                              foldMap (\url -> div_ $ a_ [href_ url] (toHtml ("Up"::Text))) murl)
 
 -------------------------------------------------------------------------------
 
