@@ -13,6 +13,7 @@ import Data.Text (Text,pack)
 import Data.Map.Strict
 import Data.Proxy
 import Control.Lens
+import Control.Monad (unless)
 import Data.Aeson
 import Data.Time
 
@@ -55,11 +56,13 @@ jobs = lens _jobs (\r v -> r { _jobs = v })
 
 instance ToHtml (Jobs Links ()) where
     toHtml js = div_ $ do
-        div_ $ do _ <- itraverse tf (_jobs js)
-                  pure ()
-        where
-        tf i v = div_ $ do p_ $ a_ [href_ (this (executionsView v))] (toHtml i)
-                           toHtml (""::Text)
+        let runningJobs = executions . traversed . currentState . _Right
+            tf :: Monad m => Text -> Executions script Links async -> HtmlT m ()
+            tf i v = li_ [class_ "list-group-item"] $ do a_ [href_ (this (executionsView v))] (toHtml i)
+                                                         unless (not (has runningJobs v)) 
+                                                                (span_ [class_ "badge"] "running")
+        ul_ [class_ "list-group"] $ do _ <- itraverse tf (_jobs js)
+                                       pure ()
     toHtmlRaw = toHtml
 
 instance ToHtml (Page (Jobs Links ())) where
@@ -86,13 +89,14 @@ instance ToHtml a => ToHtml (Executions a Links ()) where
         div_ $ toHtml (_executable x)
         div_ $ do form_ [ action_ (this (executionsView x))
                         , method_ "POST"
+                        , role_ "form"
                         ]
-                        $ do input_ [ type_ "submit", value_ "Start job"]
-        div_ $ do _ <- itraverse tf (_executions x)
-                  pure ()
-            where
-            tf i v = div_ $ do p_ $ a_ [href_ (this (executionView v))] (toHtml i)
-                               toHtml v
+                        $ div_ [class_ "form-group"] $ input_ [ class_ "form-control", type_ "submit", value_ "Start job"]
+        let tf :: Monad m => Text -> Execution Links () -> HtmlT m ()
+            tf i v = li_ [class_ "list-group-item"] $ do p_ $ a_ [href_ (this (executionView v))] (toHtml i)
+                                                         toHtml v
+        div_ $ ul_ [class_ "list-group"] $ do _ <- itraverse tf (_executions x)
+                                              pure ()
     toHtmlRaw = toHtml
 
 instance ToHtml a => ToHtml (Page (Executions a Links ())) where
@@ -134,7 +138,7 @@ data Job = Job
 
 instance ToHtml Job where
     toHtml c = div_ $ p_ $ do
-        "Script path: "
+        "Script: "
         toHtml (scriptPath c)
     toHtmlRaw = toHtml
 
