@@ -19,6 +19,8 @@ import Data.Time
 import GHC.Generics
 
 import Lucid
+import Lucid.Bootstrap
+
 import Servant.API
 import Servant.HTML.Lucid
 
@@ -61,7 +63,7 @@ instance ToHtml (Jobs Links ()) where
     toHtmlRaw = toHtml
 
 instance ToHtml (Page (Jobs Links ())) where
-    toHtml = pageWithTitle "Jobs"
+    toHtml = pageWithTitle "Jobs" Nothing
     toHtmlRaw = toHtml
 
 -------------------------------------------------------------------------------
@@ -94,7 +96,7 @@ instance ToHtml a => ToHtml (Executions a Links ()) where
     toHtmlRaw = toHtml
 
 instance ToHtml a => ToHtml (Page (Executions a Links ())) where
-    toHtml p@(Page x) = pageWithTitleAndUplink "Executions" (upwards (executionsView x)) p
+    toHtml p@(Page x) = pageWithTitle "Executions" (Just (upwards (executionsView x))) p
     toHtmlRaw = toHtml  
 
 -------------------------------------------------------------------------------
@@ -120,7 +122,7 @@ instance ToHtml (Execution Links ()) where
     toHtmlRaw = toHtml
 
 instance ToHtml (Page (Execution Links ())) where
-    toHtml p@(Page x) = pageWithTitleAndUplink "Execution" (upwards (executionView x)) p
+    toHtml p@(Page x) = pageWithTitle "Execution" (Just (upwards (executionView x))) p
     toHtmlRaw = toHtml
 
 -------------------------------------------------------------------------------
@@ -148,23 +150,21 @@ instance ToHtml Created where
     toHtmlRaw = toHtml
 
 instance ToHtml (Page Created) where
-    toHtml    = pageWithTitle "Resource created"
+    toHtml    = pageWithTitle "Resource created" Nothing
     toHtmlRaw = toHtml
 
 -------------------------------------------------------------------------------
 
 newtype Page a = Page { getContent :: a } deriving (Show,Generic,ToJSON)
 
-pageWithTitle :: (Monad m, ToHtml contents) => Text -> Page contents -> HtmlT m ()
-pageWithTitle title (Page contents) = html_ $ do
-    head_ (title_ (toHtml title))
-    body_ (toHtml contents)
-
-pageWithTitleAndUplink :: (Monad m, ToHtml contents) => Text -> Text -> Page contents -> HtmlT m ()
-pageWithTitleAndUplink title url (Page contents) = html_ $ do
-    head_ (title_ (toHtml title))
-    body_ (do div_ $ toHtml contents
-              div_ $ a_ [href_ url] (toHtml ("up"::Text)))
+pageWithTitle :: (Monad m, ToHtml contents) => Text -> Maybe Text -> Page contents -> HtmlT m ()
+pageWithTitle title murl (Page contents) = html_ $ do
+    head_ (do title_ (toHtml title)
+              link_ [rel_ "stylesheet", href_ "http://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css"]
+              script_ [src_ "https://ajax.googleapis.com/ajax/libs/jquery/1.12.0/jquery.min.js"]
+              script_ [src_ "http://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"])
+    body_ (do div_ $ do div_ $ toHtml contents
+                        foldMap (\url -> div_ $ a_ [href_ url] (toHtml ("up"::Text))) murl)
 
 -------------------------------------------------------------------------------
 

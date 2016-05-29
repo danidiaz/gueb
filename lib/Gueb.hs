@@ -1,9 +1,7 @@
 {-# language NamedFieldPuns #-}
 {-# language DataKinds #-}
-{-# language TypeOperators #-}
 {-# language OverloadedStrings #-}
 {-# language ViewPatterns #-}
-{-# language FlexibleContexts #-}
 
 module Gueb (
         noJobs
