@@ -33,7 +33,6 @@ import Gueb.Types.API
 
 import System.Process.Streaming
 
-
 noJobs :: Jobs () ()
 noJobs = Jobs mempty
 
@@ -92,8 +91,8 @@ startExecution jobId (advance -> (executionId,root)) deferrer = do
                               (preview (ixJob . executable) root)
     launched <- liftIO (launch scriptPath atExecution)
     return (set atExecution (Just launched) root
-           ,let linkUri = '/' : show (safeLink jobsAPI executionEndpoint jobId executionId)
-            in addHeader linkUri (Created linkUri))
+           ,let linkUri = mkExecutionUri jobId executionId
+            in  addHeader linkUri (Created linkUri))
     where
         launch scriptPath atExecution = do 
             pid <- deferrer (execute (piped (proc scriptPath [])) (pure ()))
@@ -108,12 +107,17 @@ startExecution jobId (advance -> (executionId,root)) deferrer = do
 advance :: GlobalState -> (ExecutionId,GlobalState)
 advance = first extract . duplicate . first (runIdentity . unwrap)
 
-addUri :: Jobs () a -> Jobs L a
+addUri :: Jobs () a -> Jobs Links a
 addUri (Jobs j) = Jobs (iover itraversed addUriExecutions j)
     where
     addUriExecutions i xs = 
-        xs { executionsView = pack ('/':show (safeLink jobsAPI jobEndpoint i)), 
-             _executions = iover itraversed (addUriExecution i) (_executions xs)}
-    addUriExecution i i' x = 
-        x { executionView = pack ('/': show (safeLink jobsAPI executionEndpoint i i')) } 
+        let topURI = pack ('/' : show (safeLink jobsAPI (Proxy::Proxy JobsEndpoint)))
+            jobURI = pack ('/' : show (safeLink jobsAPI (Proxy::Proxy JobEndpoint) i))
+        in  xs { executionsView = Links topURI jobURI,
+                 _executions = iover itraversed (addUriExecution jobURI i) (_executions xs)}
+    addUriExecution upwards i i' x = 
+        x { executionView = Links upwards (pack (mkExecutionUri i i')) }
+
+mkExecutionUri :: Text -> Text -> String
+mkExecutionUri i i' = '/': show (safeLink jobsAPI (Proxy::Proxy ExecutionEndpoint) i i')
 
