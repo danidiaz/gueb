@@ -34,7 +34,7 @@ type JobsAPI = JobsEndpoint
           :<|> JobEndpoint
           :<|> Capture "jobid" JobId :> PostCreated '[HTML,JSON] (Headers '[Header "Location" String] (Page Created))
           :<|> ExecutionEndpoint
-          :<|> Capture "jobid" JobId :> "executions" :> Capture "execid" ExecutionId :> Delete '[JSON] (Page Deleted)
+          :<|> Capture "jobid" JobId :> "executions" :> Capture "execid" ExecutionId :> Delete '[JSON] (Headers '[] (Page Deleted))
           
 type JobsEndpoint = 
            Get '[HTML,JSON] (Page (Jobs Links ())) 

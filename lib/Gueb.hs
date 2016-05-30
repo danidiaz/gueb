@@ -48,7 +48,7 @@ makeHandlersFromRef ref =
     :<|> (\jobid        -> query (jobs . ix jobid))
     :<|> (\jobid        -> command (startExecution jobid))
     :<|> (\jobid execid -> query (jobs . ix jobid . executions . ix execid))
-    :<|> (\jobid execid -> _)
+    :<|> (\jobid execid -> command (cancelExecution jobid execid))
     where
     query somelens = do root <- void . addUri . extract <$> liftIO (readMVar ref)
                         Page <$> noteT err404
@@ -98,6 +98,14 @@ startExecution jobId (advance -> (executionId,root)) deferrer = do
             t <- getCurrentTime
             pure (Execution {executionView = (), startTime=t, _currentState=Right pid})
         
+cancelExecution :: JobId
+                -> ExecutionId
+                -> GlobalState
+                -> (IO () -> IO (GlobalState -> GlobalState) -> IO (Async ()))
+                -> ExceptT ServantErr IO (GlobalState, Headers '[] Deleted)
+cancelExecution jobId executionId (counter,root) _ = do
+    return ((counter,root), Headers Deleted HNil) 
+
 {-| World's most obscure i++		
 
 -}
