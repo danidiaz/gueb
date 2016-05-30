@@ -103,8 +103,12 @@ cancelExecution :: JobId
                 -> GlobalState
                 -> (IO () -> IO (GlobalState -> GlobalState) -> IO (Async ()))
                 -> ExceptT ServantErr IO (GlobalState, Headers '[] Deleted)
-cancelExecution jobId executionId (counter,root) _ = do
-    return ((counter,root), Headers Deleted HNil) 
+cancelExecution jobId executionId root _ = do
+    let Traversal ixJob            = Traversal (_2 . jobs . ix jobId)
+        Traversal atExecutionState = Traversal (ixJob . executions . ix executionId . currentState . _Right)
+    liftIO (forMOf_ atExecutionState root (async . cancel))
+    let root' = set (ixJob . executions . at executionId) Nothing root
+    return (root', Headers Deleted HNil) 
 
 {-| World's most obscure i++		
 
