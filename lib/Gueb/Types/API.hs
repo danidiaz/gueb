@@ -94,7 +94,7 @@ instance ToHtml a => ToHtml (Executions a Links ()) where
                         ]
                         $ div_ [class_ "form-group"] $ input_ [ class_ "form-control", type_ "submit", value_ "Start job"]
         let tf :: Monad m => Text -> Execution Links () -> HtmlT m ()
-            tf i v = li_ [class_ "list-group-item"] $ do p_ $ a_ [href_ (this (executionView v))] (toHtml i)
+            tf i v = li_ [class_ "list-group-item"] $ do a_ [href_ (this (executionView v))] ("# " >> toHtml i >> " ")
                                                          toHtml v
         div_ $ ul_ [class_ "list-group"] $ do _ <- itraverse tf (_executions x)
                                               pure ()
@@ -117,13 +117,14 @@ currentState :: Lens' (Execution link async) (Either UTCTime async)
 currentState = lens _currentState (\r v -> r { _currentState = v }) 
 
 instance ToHtml (Execution Links ()) where
-    toHtml c = div_ $ do
-        p_ $ do "Execution started at: "
-                toHtml (formatTime defaultTimeLocale "%T" (startTime c))
+    toHtml c = do
+        span_ [] $ do "started at "
+                      toHtml (formatTime defaultTimeLocale "%T" (startTime c))
+                      " / "
         case _currentState c of
-            Left endTime -> p_ $ do "Execution finished at: "
-                                    toHtml (formatTime defaultTimeLocale "%T" endTime)
-            Right () -> p_ $ do "Execution still ongoing"
+            Left endTime -> span_ $ do "finished at "
+                                       toHtml (formatTime defaultTimeLocale "%T" endTime)
+            Right () -> span_ $ do "still ongoing"
     toHtmlRaw = toHtml
 
 instance ToHtml (Page (Execution Links ())) where
@@ -174,10 +175,11 @@ pageWithTitle title murl (Page contents) = html_ $ do
               meta_ [charset_ "utf-8"]
               meta_ [name_ "viewport", content_ "width=device-width, initial-scale=1"]
               link_ [rel_ "stylesheet", href_ "http://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css"]
-              script_ [src_ ("https://ajax.googleapis.com/ajax/libs/jquery/1.12.0/jquery.min.js")] (""::Text)
-              script_ [src_ ("http://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js")] (""::Text))
-    body_ (do container_ $ do div_ $ toHtml contents
-                              foldMap (\url -> div_ $ a_ [href_ url] (toHtml ("Up"::Text))) murl)
+              script_ [src_ "https://ajax.googleapis.com/ajax/libs/jquery/1.12.0/jquery.min.js"] (""::Text)
+              script_ [src_ "http://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"] (""::Text))
+    body_ (do container_ $ do h1_ (toHtml title)
+                              div_ $ toHtml contents
+                              foldMap (\url -> div_ $ a_ [href_ url] (hr_ [] >> "Up")) murl)
 
 -------------------------------------------------------------------------------
 
