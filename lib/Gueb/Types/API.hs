@@ -32,9 +32,10 @@ type ExecutionId = Text
 -- http://haskell-servant.readthedocs.org/en/stable/tutorial/ApiType.html
 type JobsAPI = JobsEndpoint
           :<|> JobEndpoint
+          :<|> Capture "jobid" JobId :> PostCreated '[HTML,JSON] (Headers '[Header "Location" String] (Page Created))
           :<|> ExecutionEndpoint
-          :<|> Capture "jobid" ExecutionId :> PostCreated '[HTML,JSON] (Headers '[Header "Location" String] (Page Created))
-
+          :<|> Capture "jobid" JobId :> "executions" :> Capture "execid" ExecutionId :> Delete '[JSON] (Page Deleted)
+          
 type JobsEndpoint = 
            Get '[HTML,JSON] (Page (Jobs Links ())) 
 
@@ -156,6 +157,10 @@ instance ToHtml Created where
 instance ToHtml (Page Created) where
     toHtml    = pageWithTitle "Resource created" Nothing
     toHtmlRaw = toHtml
+
+-------------------------------------------------------------------------------
+
+data Deleted = Deleted deriving (Show,Generic,ToJSON)
 
 -------------------------------------------------------------------------------
 

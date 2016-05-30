@@ -45,10 +45,10 @@ makeHandlers plan = do
 makeHandlersFromRef :: MVar (Unending ExecutionId,Jobs () (Async ())) -> Server JobsAPI 
 makeHandlersFromRef ref =   
          (query id)
-         --(query (to (addUri "/")))
     :<|> (\jobid        -> query (jobs . ix jobid))
-    :<|> (\jobid execid -> query (jobs . ix jobid . executions . ix execid))
     :<|> (\jobid        -> command (startExecution jobid))
+    :<|> (\jobid execid -> query (jobs . ix jobid . executions . ix execid))
+    :<|> (\jobid execid -> _)
     where
     query somelens = do root <- void . addUri . extract <$> liftIO (readMVar ref)
                         Page <$> noteT err404
@@ -69,7 +69,6 @@ makeHandlersFromRef ref =
 
 noteT :: Monad m => e -> Maybe a -> ExceptT e m a   
 noteT e = maybe (throwE e) pure 
-
 reason :: ServantErr -> Text -> ServantErr
 reason err msg = err { errBody = jsonError msg } 
     where

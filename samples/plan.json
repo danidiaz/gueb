@@ -1,3 +1,4 @@
 {
-                "sleep" : { "scriptPath" : "samples/sleep.sh" }
+                "sleep" : { "scriptPath" : "samples/sleep.sh" },
+                "longsleep" : { "scriptPath" : "samples/longsleep.sh" }
 }
