@@ -1,10 +1,7 @@
 What's this?
 ============
 
-A command line tool that takes a shell command as parameter and allows users to
-invoke it repeatedly from the web using REST calls.
-
-Yeah, it does sound unsafe.
+A command line tool that allows users to trigger/cancel the execution of predefined shell scripts, by way of a REST interface. 
 
 Development
 ===========
