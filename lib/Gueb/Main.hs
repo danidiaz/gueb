@@ -12,6 +12,7 @@ module Gueb.Main (
         makeMain
     ) where
 
+import Data.Monoid
 import Data.ByteString as Bytes
 import Data.Aeson
 import Control.Exception
@@ -19,7 +20,6 @@ import Options.Applicative
 
 import Servant
 
-import Network.Wai
 import Network.Wai.Handler.Warp
 
 import Gueb (makeHandlers)
